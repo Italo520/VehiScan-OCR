@@ -1,0 +1,8 @@
+**/target/
+**/.idea/
+**/*.iml
+**/.vscode/
+**/texto_bruto.txt
+**/resultado.txt
+**/resultado_final.txt
+**/.env
