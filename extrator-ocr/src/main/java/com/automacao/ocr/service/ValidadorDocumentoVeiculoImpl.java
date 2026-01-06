@@ -3,34 +3,48 @@ package com.automacao.ocr.service;
 import com.automacao.ocr.dto.CampoExtraido;
 import com.automacao.ocr.dto.CampoStatus;
 import com.automacao.ocr.dto.DocumentoVeiculoDTO;
+import com.automacao.ocr.pipeline.validators.ChassiValidator;
+import com.automacao.ocr.pipeline.validators.CpfCnpjValidator;
+import com.automacao.ocr.pipeline.validators.PlacaValidator;
+import com.automacao.ocr.pipeline.validators.RenavamValidator;
 
 import java.time.Year;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class ValidadorDocumentoVeiculoImpl implements ValidadorDocumentoVeiculo {
 
-    private static final Pattern REGEX_PLACA_MERCOSUL = Pattern.compile("^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$");
     private static final int ANO_MIN = 1950;
     private static final int ANO_MAX = Year.now().getValue() + 1;
 
     private final Set<String> marcasConhecidas;
+    private final PlacaValidator placaValidator;
+    private final ChassiValidator chassiValidator;
+    private final RenavamValidator renavamValidator;
+    private final CpfCnpjValidator cpfCnpjValidator;
 
     public ValidadorDocumentoVeiculoImpl() {
         this.marcasConhecidas = new HashSet<>();
-        // Exemplo de carga inicial (idealmente viria de um DB ou arquivo)
+        // Exemplo de carga inicial
         marcasConhecidas.add("GM/CELTA");
         marcasConhecidas.add("JEEP/RENEGADE");
         marcasConhecidas.add("FIAT/STRADA");
         marcasConhecidas.add("VW/GOL");
         marcasConhecidas.add("HONDA/CIVIC");
         marcasConhecidas.add("TOYOTA/COROLLA");
+
+        this.placaValidator = new PlacaValidator();
+        this.chassiValidator = new ChassiValidator();
+        this.renavamValidator = new RenavamValidator();
+        this.cpfCnpjValidator = new CpfCnpjValidator();
     }
 
     @Override
     public DocumentoVeiculoDTO validar(DocumentoVeiculoDTO doc, String textoOriginal) {
         validarPlaca(doc);
+        validarChassi(doc);
+        validarRenavam(doc);
+        validarCpfCnpj(doc);
         validarAnoFabricacao(doc);
         validarAnoModelo(doc);
         validarMarcaModelo(doc);
@@ -43,13 +57,63 @@ public class ValidadorDocumentoVeiculoImpl implements ValidadorDocumentoVeiculo 
             marcar(placa, CampoStatus.NAO_ENCONTRADO, "placa ausente");
             return;
         }
-        String normalizada = placa.getValor().toUpperCase().replaceAll("[^A-Z0-9]", "");
-        placa.setValor(normalizada);
 
-        if (REGEX_PLACA_MERCOSUL.matcher(normalizada).matches()) {
+        String valor = placa.getValor();
+        if (placaValidator.isValid(valor)) {
+            placa.setValor(placaValidator.refine(valor));
             marcar(placa, CampoStatus.OK, null);
         } else {
-            marcar(placa, CampoStatus.SUSPEITO, "formato de placa inválido: " + normalizada);
+            marcar(placa, CampoStatus.SUSPEITO, "formato de placa inválido: " + valor);
+        }
+    }
+
+    private void validarChassi(DocumentoVeiculoDTO doc) {
+        CampoExtraido chassi = doc.getChassi();
+        if (chassi == null || chassi.getValor() == null || chassi.getValor().isBlank()) {
+            marcar(chassi, CampoStatus.NAO_ENCONTRADO, "chassi ausente");
+            return;
+        }
+
+        String valor = chassi.getValor();
+        if (chassiValidator.isValid(valor)) {
+            chassi.setValor(chassiValidator.refine(valor));
+            marcar(chassi, CampoStatus.OK, null);
+        } else {
+            marcar(chassi, CampoStatus.SUSPEITO, "formato de chassi inválido: " + valor);
+        }
+    }
+
+    private void validarRenavam(DocumentoVeiculoDTO doc) {
+        CampoExtraido renavam = doc.getRenavam();
+        if (renavam == null || renavam.getValor() == null || renavam.getValor().isBlank()) {
+            // Renavam pode ser opcional dependendo do documento, mas se veio, valida.
+            // Se não veio, marca como não encontrado.
+            marcar(renavam, CampoStatus.NAO_ENCONTRADO, "renavam ausente");
+            return;
+        }
+
+        String valor = renavam.getValor();
+        if (renavamValidator.isValid(valor)) {
+            renavam.setValor(renavamValidator.refine(valor));
+            marcar(renavam, CampoStatus.OK, null);
+        } else {
+            marcar(renavam, CampoStatus.SUSPEITO, "renavam inválido: " + valor);
+        }
+    }
+
+    private void validarCpfCnpj(DocumentoVeiculoDTO doc) {
+        CampoExtraido cpfCnpj = doc.getCpfCnpj();
+        if (cpfCnpj == null || cpfCnpj.getValor() == null || cpfCnpj.getValor().isBlank()) {
+            marcar(cpfCnpj, CampoStatus.NAO_ENCONTRADO, "cpf/cnpj ausente");
+            return;
+        }
+
+        String valor = cpfCnpj.getValor();
+        if (cpfCnpjValidator.isValid(valor)) {
+            cpfCnpj.setValor(cpfCnpjValidator.refine(valor));
+            marcar(cpfCnpj, CampoStatus.OK, null);
+        } else {
+            marcar(cpfCnpj, CampoStatus.SUSPEITO, "cpf/cnpj inválido: " + valor);
         }
     }
 
@@ -83,16 +147,8 @@ public class ValidadorDocumentoVeiculoImpl implements ValidadorDocumentoVeiculo 
         CampoExtraido marca = doc.getMarca();
         if (marca != null && marca.getValor() != null) {
             String m = marca.getValor().toUpperCase();
-            // Validação simples: contém alguma das marcas conhecidas?
             if (!m.trim().isEmpty()) {
-                // Aceita qualquer marca não vazia para permitir tentativa de busca na Fipe
                 marcar(marca, CampoStatus.OK, null);
-
-                // Log opcional para debug
-                boolean conhecida = marcasConhecidas.stream().anyMatch(m::contains);
-                if (!conhecida) {
-                    System.out.println("   [Validador] Marca nova detectada (não está na whitelist): " + m);
-                }
             } else {
                 marcar(marca, CampoStatus.NAO_ENCONTRADO, "marca vazia");
             }

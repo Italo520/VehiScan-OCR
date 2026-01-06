@@ -1,7 +1,9 @@
 package com.automacao.ocr.pipeline;
 
 import com.automacao.ocr.ExtratorTexto;
+import com.automacao.ocr.dto.CampoStatus;
 import com.automacao.ocr.dto.DocumentoVeiculoDTO;
+import com.automacao.ocr.dto.StatusExtracao;
 import com.automacao.ocr.service.ExtratorLLM;
 import com.automacao.ocr.service.ValidadorDocumentoVeiculo;
 
@@ -30,47 +32,55 @@ public class PipelineDocumentoVeiculo {
 
                 if (texto == null || texto.isBlank()) {
                         System.out.println("   [Pipeline] AVISO: OCR não retornou texto.");
-                        return new DocumentoVeiculoDTO(); // Retorna vazio
+                        DocumentoVeiculoDTO vazio = new DocumentoVeiculoDTO();
+                        vazio.setStatusExtracao(StatusExtracao.ERRO);
+                        vazio.setNecessitaRevisao(true);
+                        return vazio;
                 }
 
                 // 2. Extração Preliminar (Regex)
                 System.out.println("   [Pipeline] 2a. Extração Preliminar (Regex)...");
-                // Precisamos instanciar o extrator de regex aqui ou injetá-lo.
-                // Como ele não implementa ExtratorLLM, usamos direto.
                 com.automacao.ocr.ExtratorDadosVeiculo extratorRegex = new com.automacao.ocr.ExtratorDadosVeiculo();
                 var dadosMap = extratorRegex.extrairDados(texto);
 
-                // Converte Map -> DTO para passar como sugestão
+                // Converte Map -> DTO
                 DocumentoVeiculoDTO dadosPreliminares = converterMapParaDTO(dadosMap);
 
-                // 3. Extração Final (LLM com revisão)
-                System.out.println("   [Pipeline] 2b. Extração Final (LLM revisando Regex)...");
-                DocumentoVeiculoDTO extraido = extratorLLM.extrairCampos(texto, dadosPreliminares);
+                // 3. Validação Preliminar
+                System.out.println("   [Pipeline] 2b. Validação Preliminar...");
+                DocumentoVeiculoDTO validadoPreliminar = validador.validar(dadosPreliminares, texto);
 
-                // 4. Validação e Regras de Negócio
-                System.out.println("   [Pipeline] 3. Validando dados...");
-                DocumentoVeiculoDTO validado = validador.validar(extraido, texto);
+                // 4. Decisão de LLM (Fallback)
+                DocumentoVeiculoDTO documentoFinal = validadoPreliminar;
+                if (precisaRefinoLLM(validadoPreliminar)) {
+                        System.out.println("   [Pipeline] 3. Extração Final (LLM Refinando)...");
+                        // Passa os dados já validados (e potencialmente limpos) para o LLM
+                        documentoFinal = extratorLLM.extrairCampos(texto, validadoPreliminar);
+
+                        // Re-valida após LLM
+                        System.out.println("   [Pipeline] 3b. Re-validando após LLM...");
+                        documentoFinal = validador.validar(documentoFinal, texto);
+                } else {
+                        System.out.println("   [Pipeline] 3. Dados Regex suficientes e válidos. Pulando LLM.");
+                }
 
                 // 5. Enriquecimento com Fipe
                 com.automacao.ocr.fipe.dto.FipeCompletoDTO fipeCompleto = null;
 
-                if (validado.getMarca().getStatus() == com.automacao.ocr.dto.CampoStatus.OK &&
-                                validado.getModelo().getStatus() == com.automacao.ocr.dto.CampoStatus.OK) {
+                if (documentoFinal.getMarca().getStatus() == CampoStatus.OK &&
+                                documentoFinal.getModelo().getStatus() == CampoStatus.OK) {
 
                         System.out.println("   [Pipeline] 4. Consultando Tabela Fipe...");
                         com.automacao.ocr.fipe.FipeService fipeService = new com.automacao.ocr.fipe.FipeService();
 
-                        // Extrai marca e modelo (que podem vir juntos no campo marca)
-                        String marcaBruta = validado.getMarca().getValor();
+                        String marcaBruta = documentoFinal.getMarca().getValor();
                         String marca = marcaBruta;
-                        String modelo = marcaBruta; // Inicialmente assume que pode ser tudo junto
+                        String modelo = marcaBruta;
 
-                        // Limpeza de lixo comum de OCR
                         if (marca.contains("ASSINADO DIGITALMENTE")) {
                                 marca = marca.split("ASSINADO DIGITALMENTE")[0].trim();
                         }
 
-                        // Tenta separar Marca/Modelo
                         if (marca.contains("/")) {
                                 String[] partes = marca.split("/");
                                 if (partes.length > 1) {
@@ -81,26 +91,22 @@ public class PipelineDocumentoVeiculo {
                                                 marca = p0;
                                                 modelo = p1;
                                         } else if (partes.length > 2) {
-                                                // Caso: "/ FIAT / STRADA" -> p0="", p1="FIAT", p2="STRADA"
                                                 marca = p1;
                                                 modelo = partes[2].trim();
                                         } else {
-                                                // Caso: "/ FIAT" -> assume que é a marca
                                                 marca = p1;
                                                 modelo = p1;
                                         }
                                 }
                         }
 
-                        // Preferencialmente usa o Ano Modelo
-                        String anoModelo = validado.getModelo().getValor();
-                        String anoFabricacao = validado.getFabricacao() != null ? validado.getFabricacao().getValor()
+                        String anoModelo = documentoFinal.getModelo().getValor();
+                        String anoFabricacao = documentoFinal.getFabricacao() != null
+                                        ? documentoFinal.getFabricacao().getValor()
                                         : null;
 
-                        // Tenta primeiro com o Ano Modelo (preferencial)
                         var valorFipe = fipeService.buscarVeiculo(marca, modelo, anoModelo);
 
-                        // Se falhar e tiver ano de fabricação diferente, tenta com ele
                         if (valorFipe == null && anoFabricacao != null && !anoFabricacao.equals(anoModelo)) {
                                 System.out.println("   [Pipeline] >> Tentando busca com ano de fabricação: "
                                                 + anoFabricacao);
@@ -108,8 +114,7 @@ public class PipelineDocumentoVeiculo {
                         }
 
                         if (valorFipe != null) {
-                                validado.setDadosFipe(valorFipe);
-                                // Converte para o DTO completo solicitado pelo usuário
+                                documentoFinal.setDadosFipe(valorFipe);
                                 fipeCompleto = new com.automacao.ocr.fipe.dto.FipeCompletoDTO(valorFipe);
                                 System.out.println("   [Pipeline] >> Fipe Encontrada: " + valorFipe.valor);
                         } else {
@@ -119,30 +124,83 @@ public class PipelineDocumentoVeiculo {
                         }
                 }
 
-                // 6. Persistência (MongoDB)
+                // 6. Atualiza Status Final
+                atualizarStatusFinal(documentoFinal);
+
+                // 7. Persistência (MongoDB)
                 System.out.println("   [Pipeline] 5. Salvando no MongoDB...");
                 com.automacao.ocr.db.MongoDBService mongoService = new com.automacao.ocr.db.MongoDBService();
-                mongoService.salvarVeiculo(validado, fipeCompleto);
+                mongoService.salvarVeiculo(documentoFinal, fipeCompleto);
 
-                return validado;
+                return documentoFinal;
+        }
+
+        private void atualizarStatusFinal(DocumentoVeiculoDTO doc) {
+                boolean todosOk = true;
+                boolean algumErro = false;
+
+                // Verifica campos críticos
+                if (doc.getPlaca().getStatus() != CampoStatus.OK)
+                        todosOk = false;
+                if (doc.getChassi().getStatus() != CampoStatus.OK)
+                        todosOk = false;
+                if (doc.getRenavam().getStatus() != CampoStatus.OK)
+                        todosOk = false;
+                if (doc.getMarca().getStatus() != CampoStatus.OK)
+                        todosOk = false;
+
+                if (doc.getPlaca().getStatus() == CampoStatus.INVALIDO)
+                        algumErro = true;
+                if (doc.getChassi().getStatus() == CampoStatus.INVALIDO)
+                        algumErro = true;
+
+                if (todosOk) {
+                        doc.setStatusExtracao(StatusExtracao.COMPLETO);
+                        doc.setNecessitaRevisao(false);
+                } else if (algumErro) {
+                        doc.setStatusExtracao(StatusExtracao.ERRO);
+                        doc.setNecessitaRevisao(true);
+                } else {
+                        doc.setStatusExtracao(StatusExtracao.PARCIAL);
+                        doc.setNecessitaRevisao(true);
+                }
+        }
+
+        private boolean precisaRefinoLLM(DocumentoVeiculoDTO doc) {
+                if (doc.getPlaca().getStatus() != CampoStatus.OK)
+                        return true;
+                if (doc.getChassi().getStatus() != CampoStatus.OK)
+                        return true;
+                if (doc.getRenavam().getStatus() != CampoStatus.OK)
+                        return true;
+                if (doc.getMarca().getStatus() != CampoStatus.OK)
+                        return true;
+                return false;
         }
 
         private DocumentoVeiculoDTO converterMapParaDTO(java.util.Map<String, String> map) {
                 DocumentoVeiculoDTO dto = new DocumentoVeiculoDTO();
                 dto.setPlaca(new com.automacao.ocr.dto.CampoExtraido(map.get("Placa"),
-                                com.automacao.ocr.dto.CampoStatus.OK,
-                                "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
                 dto.setChassi(new com.automacao.ocr.dto.CampoExtraido(map.get("Chassi"),
-                                com.automacao.ocr.dto.CampoStatus.OK,
-                                "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
                 dto.setFabricacao(new com.automacao.ocr.dto.CampoExtraido(map.get("Fabricação"),
-                                com.automacao.ocr.dto.CampoStatus.OK, "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
                 dto.setModelo(new com.automacao.ocr.dto.CampoExtraido(map.get("Ano Modelo"),
-                                com.automacao.ocr.dto.CampoStatus.OK, "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
                 dto.setMarca(new com.automacao.ocr.dto.CampoExtraido(map.get("Marca/Modelo"),
-                                com.automacao.ocr.dto.CampoStatus.OK, "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
                 dto.setTipoDocumento(new com.automacao.ocr.dto.CampoExtraido(map.get("Tipo Documento"),
-                                com.automacao.ocr.dto.CampoStatus.OK, "Regex"));
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+
+                // Novos campos
+                dto.setRenavam(new com.automacao.ocr.dto.CampoExtraido(map.get("Renavam"),
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+                dto.setCpfCnpj(new com.automacao.ocr.dto.CampoExtraido(map.get("CPF/CNPJ"),
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+                dto.setNomeProprietario(new com.automacao.ocr.dto.CampoExtraido(map.get("Nome"),
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+
                 return dto;
         }
 }

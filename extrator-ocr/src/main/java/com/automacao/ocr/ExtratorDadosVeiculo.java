@@ -1,5 +1,6 @@
 package com.automacao.ocr;
 
+import com.automacao.ocr.utils.TextNormalizer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,39 +21,54 @@ public class ExtratorDadosVeiculo {
     // Marca: pega até o fim da linha
     private static final Pattern PATTERN_MARCA = Pattern.compile("(?i)Marca[:\\s]+([^\n]+)");
 
+    // Novos padrões
+    private static final Pattern PATTERN_RENAVAM = Pattern.compile("(?i)Renavam[:\\s]+([0-9]{9,11})");
+    private static final Pattern PATTERN_CPF_CNPJ = Pattern.compile("(?i)(?:CPF|CNPJ)[:\\s]+([0-9./-]+)");
+    private static final Pattern PATTERN_NOME = Pattern.compile("(?i)Nome[:\\s]+([^\n]+)");
+
     public Map<String, String> extrairDados(String textoBruto) {
         Map<String, String> dados = new HashMap<>();
 
-        // Normaliza quebras de linha para facilitar regex
-        String texto = textoBruto.replaceAll("\\r\\n", "\n");
+        // O normalizer remove acentos e converte para upper, mas o regex original
+        // esperava acentos em alguns casos (ex: Fabricação)
+        // Como o normalizer remove acentos, precisamos ajustar os regex ou usar o texto
+        // original para regex que dependem de acento.
+        // O normalizer também remove quebras de linha duplicadas e converte para \n.
+        // Vamos usar uma versão levemente normalizada para regex que preserva estrutura
+        // mas limpa ruído.
+
+        // Para compatibilidade com regex existentes que esperam acentos (ex:
+        // "Fabricação"),
+        // vamos usar o textoBruto com replace básico de linhas, mas aplicar
+        // normalização nos valores extraídos.
+        String textoParaRegex = textoBruto.replaceAll("\\r\\n", "\n");
 
         // 1. Placa
-        Matcher mPlaca = PATTERN_PLACA.matcher(texto);
+        Matcher mPlaca = PATTERN_PLACA.matcher(textoParaRegex);
         if (mPlaca.find()) {
-            dados.put("Placa", mPlaca.group(1));
+            dados.put("Placa", TextNormalizer.normalize(mPlaca.group(1)));
         }
 
         // 2. Chassi
-        Matcher mChassi = PATTERN_CHASSI.matcher(texto);
+        Matcher mChassi = PATTERN_CHASSI.matcher(textoParaRegex);
         if (mChassi.find()) {
-            dados.put("Chassi", mChassi.group(1));
+            dados.put("Chassi", TextNormalizer.normalize(mChassi.group(1)));
         }
 
         // 3. Ano Fabricação
-        Matcher mAnoFab = PATTERN_ANO_FAB.matcher(texto);
+        Matcher mAnoFab = PATTERN_ANO_FAB.matcher(textoParaRegex);
         if (mAnoFab.find()) {
             dados.put("Fabricação", mAnoFab.group(1));
         }
 
         // 4. Ano Modelo
-        Matcher mAnoMod = PATTERN_ANO_MOD.matcher(texto);
+        Matcher mAnoMod = PATTERN_ANO_MOD.matcher(textoParaRegex);
         if (mAnoMod.find()) {
             dados.put("Ano Modelo", mAnoMod.group(1));
         }
 
         // 5. Marca/Modelo
-        // 5. Marca/Modelo
-        Matcher mMarca = PATTERN_MARCA.matcher(texto);
+        Matcher mMarca = PATTERN_MARCA.matcher(textoParaRegex);
         while (mMarca.find()) {
             String marcaCompleta = mMarca.group(1).trim();
 
@@ -68,14 +84,33 @@ public class ExtratorDadosVeiculo {
                     marcaCompleta = marcaCompleta.substring(indexTraco + 1).trim();
                 }
             }
-            dados.put("Marca/Modelo", marcaCompleta);
+            dados.put("Marca/Modelo", TextNormalizer.normalize(marcaCompleta));
             break; // Encontrou um valor válido, para.
         }
 
-        // 6. Classificação e Tipo (Lógica de negócio)
-        if (texto.contains("CERTIFICADO DE REGISTRO")) {
+        // 6. Renavam
+        Matcher mRenavam = PATTERN_RENAVAM.matcher(textoParaRegex);
+        if (mRenavam.find()) {
+            dados.put("Renavam", mRenavam.group(1));
+        }
+
+        // 7. CPF/CNPJ
+        Matcher mCpfCnpj = PATTERN_CPF_CNPJ.matcher(textoParaRegex);
+        if (mCpfCnpj.find()) {
+            dados.put("CPF/CNPJ", mCpfCnpj.group(1));
+        }
+
+        // 8. Nome Proprietário
+        Matcher mNome = PATTERN_NOME.matcher(textoParaRegex);
+        if (mNome.find()) {
+            dados.put("Nome", TextNormalizer.normalize(mNome.group(1)));
+        }
+
+        // 9. Classificação e Tipo (Lógica de negócio)
+        if (textoParaRegex.contains("CERTIFICADO DE REGISTRO")) {
             dados.put("Tipo Documento", "CRV/CRLV");
-        } else if (texto.contains("CONSULTA CADASTRO DE VEICULO") || texto.contains("CONSULTA CADASTRO DE VEÍCULO")) {
+        } else if (textoParaRegex.contains("CONSULTA CADASTRO DE VEICULO")
+                || textoParaRegex.contains("CONSULTA CADASTRO DE VEÍCULO")) {
             dados.put("Tipo Documento", "CONSULTA CADASTRO DE VEICULO");
         } else {
             dados.put("Tipo Documento", "Desconhecido");
