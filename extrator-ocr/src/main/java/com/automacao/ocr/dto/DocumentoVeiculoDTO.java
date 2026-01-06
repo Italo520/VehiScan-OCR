@@ -9,6 +9,7 @@ public class DocumentoVeiculoDTO {
     private CampoExtraido chassi;
     private CampoExtraido classificacao;
     private CampoExtraido observacoes;
+    private com.automacao.ocr.fipe.dto.ValorFipeDTO dadosFipe;
 
     public DocumentoVeiculoDTO() {
         // Inicializa com status NAO_ENCONTRADO por padrão para evitar NullPointer
@@ -84,5 +85,13 @@ public class DocumentoVeiculoDTO {
 
     public void setObservacoes(CampoExtraido observacoes) {
         this.observacoes = observacoes;
+    }
+
+    public com.automacao.ocr.fipe.dto.ValorFipeDTO getDadosFipe() {
+        return dadosFipe;
+    }
+
+    public void setDadosFipe(com.automacao.ocr.fipe.dto.ValorFipeDTO dadosFipe) {
+        this.dadosFipe = dadosFipe;
     }
 }

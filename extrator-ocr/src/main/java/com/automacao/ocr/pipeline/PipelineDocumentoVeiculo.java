@@ -60,18 +60,53 @@ public class PipelineDocumentoVeiculo {
                         System.out.println("   [Pipeline] 4. Consultando Tabela Fipe...");
                         com.automacao.ocr.fipe.FipeService fipeService = new com.automacao.ocr.fipe.FipeService();
 
-                        String marca = validado.getMarca().getValor();
-                        String modelo = validado.getMarca().getValor(); // Tenta usar marca/modelo completo primeiro
-                        // Se o campo marca contiver "GM/CELTA", tentamos quebrar
-                        if (marca.contains("/")) {
-                                String[] partes = marca.split("/");
-                                if (partes.length > 1)
-                                        modelo = partes[1].trim();
+                        // Extrai marca e modelo (que podem vir juntos no campo marca)
+                        String marcaBruta = validado.getMarca().getValor();
+                        String marca = marcaBruta;
+                        String modelo = marcaBruta; // Inicialmente assume que pode ser tudo junto
+
+                        // Limpeza de lixo comum de OCR
+                        if (marca.contains("ASSINADO DIGITALMENTE")) {
+                                marca = marca.split("ASSINADO DIGITALMENTE")[0].trim();
                         }
 
-                        String ano = validado.getModelo().getValor(); // Ano Modelo
+                        // Tenta separar Marca/Modelo
+                        if (marca.contains("/")) {
+                                String[] partes = marca.split("/");
+                                if (partes.length > 1) {
+                                        String p0 = partes[0].trim();
+                                        String p1 = partes[1].trim();
 
-                        var valorFipe = fipeService.buscarVeiculo(marca, modelo, ano);
+                                        if (!p0.isEmpty()) {
+                                                marca = p0;
+                                                modelo = p1;
+                                        } else if (partes.length > 2) {
+                                                // Caso: "/ FIAT / STRADA" -> p0="", p1="FIAT", p2="STRADA"
+                                                marca = p1;
+                                                modelo = partes[2].trim();
+                                        } else {
+                                                // Caso: "/ FIAT" -> assume que é a marca
+                                                marca = p1;
+                                                modelo = p1;
+                                        }
+                                }
+                        }
+
+                        // Preferencialmente usa o Ano Modelo
+                        String anoModelo = validado.getModelo().getValor();
+                        String anoFabricacao = validado.getFabricacao() != null ? validado.getFabricacao().getValor()
+                                        : null;
+
+                        // Tenta primeiro com o Ano Modelo (preferencial)
+                        var valorFipe = fipeService.buscarVeiculo(marca, modelo, anoModelo);
+
+                        // Se falhar e tiver ano de fabricação diferente, tenta com ele
+                        if (valorFipe == null && anoFabricacao != null && !anoFabricacao.equals(anoModelo)) {
+                                System.out.println("   [Pipeline] >> Tentando busca com ano de fabricação: "
+                                                + anoFabricacao);
+                                valorFipe = fipeService.buscarVeiculo(marca, modelo, anoFabricacao);
+                        }
+
                         if (valorFipe != null) {
                                 validado.setDadosFipe(valorFipe);
                                 // Converte para o DTO completo solicitado pelo usuário
@@ -79,7 +114,8 @@ public class PipelineDocumentoVeiculo {
                                 System.out.println("   [Pipeline] >> Fipe Encontrada: " + valorFipe.valor);
                         } else {
                                 System.out.println("   [Pipeline] >> Fipe não encontrada para: " + marca + " - "
-                                                + modelo + " - " + ano);
+                                                + modelo + " (Ano Modelo: " + anoModelo + ", Ano Fab: " + anoFabricacao
+                                                + ")");
                         }
                 }
 

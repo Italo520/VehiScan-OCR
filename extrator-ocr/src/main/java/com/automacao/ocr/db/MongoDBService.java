@@ -40,11 +40,15 @@ public class MongoDBService {
     public void salvarVeiculo(DocumentoVeiculoDTO doc, FipeCompletoDTO fipeData) {
         try {
             MongoCollection<Document> collection = database.getCollection("veiculos_processados");
+            MongoCollection<Document> fipeCollection = database.getCollection("dados_fipe");
 
             // Cria documento base com dados do OCR
             Document mongoDoc = new Document();
-            mongoDoc.append("placa", doc.getPlaca() != null ? doc.getPlaca().getValor() : null);
-            mongoDoc.append("chassi", doc.getChassi() != null ? doc.getChassi().getValor() : null);
+            String placa = doc.getPlaca() != null ? doc.getPlaca().getValor() : null;
+            String chassi = doc.getChassi() != null ? doc.getChassi().getValor() : null;
+
+            mongoDoc.append("placa", placa);
+            mongoDoc.append("chassi", chassi);
             mongoDoc.append("marca", doc.getMarca() != null ? doc.getMarca().getValor() : null);
             mongoDoc.append("modelo", doc.getModelo() != null ? doc.getModelo().getValor() : null);
             mongoDoc.append("fabricacao", doc.getFabricacao() != null ? doc.getFabricacao().getValor() : null);
@@ -54,13 +58,48 @@ public class MongoDBService {
 
             // Adiciona dados da Fipe se houver
             if (fipeData != null) {
+                // Apenas valor e código no corpo do documento (para queries rápidas)
+                mongoDoc.append("fipe_valor", fipeData.price);
+                mongoDoc.append("fipe_codigo", fipeData.codeFipe);
+
+                // Mantém o objeto completo aninhado
                 String fipeJson = mapper.writeValueAsString(fipeData);
                 Document fipeDoc = Document.parse(fipeJson);
                 mongoDoc.append("fipe_info", fipeDoc);
+
+                // Salva na collection separada de dados da Fipe
+                Document fipeLog = Document.parse(fipeJson);
+                fipeLog.append("placa_veiculo", placa);
+                fipeLog.append("chassi_veiculo", chassi);
+                fipeLog.append("data_consulta", java.time.Instant.now().toString());
+                fipeCollection.insertOne(fipeLog);
             }
 
-            collection.insertOne(mongoDoc);
-            System.out.println("   [MongoDB] Veículo salvo com sucesso. ID: " + mongoDoc.get("_id"));
+            // Define o filtro para busca (prioridade: Placa -> Chassi)
+            org.bson.conversions.Bson filter = null;
+            if (placa != null && !placa.trim().isEmpty()) {
+                filter = com.mongodb.client.model.Filters.eq("placa", placa);
+            } else if (chassi != null && !chassi.trim().isEmpty()) {
+                filter = com.mongodb.client.model.Filters.eq("chassi", chassi);
+            }
+
+            if (filter != null) {
+                com.mongodb.client.model.ReplaceOptions options = new com.mongodb.client.model.ReplaceOptions()
+                        .upsert(true);
+                com.mongodb.client.result.UpdateResult result = collection.replaceOne(filter, mongoDoc, options);
+
+                if (result.getUpsertedId() != null) {
+                    System.out.println("   [MongoDB] Novo veículo inserido. ID: " + result.getUpsertedId());
+                } else {
+                    System.out.println("   [MongoDB] Veículo atualizado com sucesso (Placa: " + placa + ", Chassi: "
+                            + chassi + ").");
+                }
+            } else {
+                // Se não tiver nem placa nem chassi, insere como novo (não tem como identificar
+                // duplicidade)
+                collection.insertOne(mongoDoc);
+                System.out.println("   [MongoDB] Veículo salvo (sem identificador único). ID: " + mongoDoc.get("_id"));
+            }
 
         } catch (Exception e) {
             System.err.println("   [MongoDB] Erro ao salvar veículo: " + e.getMessage());

@@ -98,6 +98,11 @@ public class MainExtracao {
         System.out.println("Marca   : " + doc.getMarca());
         System.out.println("Fabr.   : " + doc.getFabricacao());
         System.out.println("Modelo  : " + doc.getModelo());
+        if (doc.getDadosFipe() != null) {
+            System.out.println("FIPE    : " + doc.getDadosFipe().valor + " (" + doc.getDadosFipe().modelo + ")");
+        } else {
+            System.out.println("FIPE    : Não encontrada");
+        }
         System.out.println("-----------------------------------------");
 
         if (doc.getPlaca().getStatus() != com.automacao.ocr.dto.CampoStatus.OK) {

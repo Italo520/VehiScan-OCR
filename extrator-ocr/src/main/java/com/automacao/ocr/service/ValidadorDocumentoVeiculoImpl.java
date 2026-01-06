@@ -84,12 +84,17 @@ public class ValidadorDocumentoVeiculoImpl implements ValidadorDocumentoVeiculo 
         if (marca != null && marca.getValor() != null) {
             String m = marca.getValor().toUpperCase();
             // Validação simples: contém alguma das marcas conhecidas?
-            boolean conhecida = marcasConhecidas.stream().anyMatch(m::contains);
-
-            if (conhecida) {
+            if (!m.trim().isEmpty()) {
+                // Aceita qualquer marca não vazia para permitir tentativa de busca na Fipe
                 marcar(marca, CampoStatus.OK, null);
+
+                // Log opcional para debug
+                boolean conhecida = marcasConhecidas.stream().anyMatch(m::contains);
+                if (!conhecida) {
+                    System.out.println("   [Validador] Marca nova detectada (não está na whitelist): " + m);
+                }
             } else {
-                marcar(marca, CampoStatus.SUSPEITO, "marca não encontrada na base conhecida");
+                marcar(marca, CampoStatus.NAO_ENCONTRADO, "marca vazia");
             }
         } else {
             marcar(marca, CampoStatus.NAO_ENCONTRADO, "marca não encontrada");

@@ -1,11 +1,10 @@
 package com.automacao.ocr.fipe;
 
-import com.automacao.ocr.fipe.dto.ModelosResponseDTO;
 import com.automacao.ocr.fipe.dto.ReferenciaFipeDTO;
 import com.automacao.ocr.fipe.dto.ValorFipeDTO;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class FipeService {
 
@@ -24,35 +23,55 @@ public class FipeService {
                 return null;
             }
 
-            // 2. Encontrar Modelo
-            String codigoModelo = encontrarCodigoModelo(codigoMarca, nomeModelo);
-            if (codigoModelo == null) {
-                System.out
-                        .println("   [Fipe] Modelo não encontrado: " + nomeModelo + " (Marca ID: " + codigoMarca + ")");
+            // 2. Buscar lista de modelos da marca
+            List<ReferenciaFipeDTO> modelos = client.listarModelos(codigoMarca);
+            if (modelos == null || modelos.isEmpty()) {
+                System.out.println("   [Fipe] Nenhum modelo encontrado para a marca ID: " + codigoMarca);
                 return null;
             }
 
-            // 3. Encontrar Ano
-            String codigoAno = encontrarCodigoAno(codigoMarca, codigoModelo, anoModelo);
-            if (codigoAno == null) {
-                System.out.println("   [Fipe] Ano não encontrado: " + anoModelo);
+            String termoModelo = nomeModelo.toLowerCase();
+
+            // 3. Filtrar e ordenar candidatos (Top 10)
+            List<ReferenciaFipeDTO> candidatos = modelos.stream()
+                    .filter(m -> calcularScore(m.nome.toLowerCase(), termoModelo) > 0)
+                    .sorted((m1, m2) -> Double.compare(
+                            calcularScore(m2.nome.toLowerCase(), termoModelo),
+                            calcularScore(m1.nome.toLowerCase(), termoModelo)))
+                    .limit(10)
+                    .collect(Collectors.toList());
+
+            if (candidatos.isEmpty()) {
+                System.out.println("   [Fipe] Nenhum modelo candidato identificado para: " + nomeModelo);
                 return null;
             }
 
-            // 4. Consultar Valor
-            return client.consultarValor(codigoMarca, codigoModelo, codigoAno);
+            System.out.println("   [Fipe] Candidatos identificados para '" + nomeModelo + "': "
+                    + candidatos.stream().map(m -> m.nome).collect(Collectors.joining(", ")));
+
+            // 4. Tentar encontrar o ano em cada candidato (do melhor score para o pior)
+            for (ReferenciaFipeDTO modelo : candidatos) {
+                String codigoAno = encontrarCodigoAno(codigoMarca, modelo.codigo, anoModelo);
+
+                if (codigoAno != null) {
+                    System.out.println("   [Fipe] Match encontrado! Modelo: " + modelo.nome + " | Ano: " + codigoAno);
+                    return client.consultarValor(codigoMarca, modelo.codigo, codigoAno);
+                }
+            }
+
+            System.out.println("   [Fipe] Ano " + anoModelo + " não encontrado em nenhum dos " + candidatos.size()
+                    + " melhores candidatos.");
+            return null;
 
         } catch (Exception e) {
             System.err.println("   [Fipe] Erro no fluxo de busca: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
 
     private String encontrarCodigoMarca(String busca) {
         List<ReferenciaFipeDTO> marcas = client.listarMarcas();
-        // Busca simples: contém o nome (ignora case)
-        // Ex: "GM/CELTA" -> busca "GM" ou "CHEVROLET"
-        // Melhoria: Mapear nomes comuns (GM -> Chevrolet)
         String termo = normalizarMarca(busca);
 
         return marcas.stream()
@@ -62,36 +81,32 @@ public class FipeService {
                 .orElse(null);
     }
 
-    private String encontrarCodigoModelo(String codigoMarca, String buscaModelo) {
-        ModelosResponseDTO response = client.listarModelos(codigoMarca);
-        String termo = buscaModelo.toLowerCase();
-
-        // Tenta match exato ou parcial
-        // Aqui seria ideal usar Levenshtein ou LLM para desambiguar
-        // Ex: "CELTA 5 PORTAS" vs "Celta Life 1.0 8V 4p"
-
-        // Estratégia simples: Token mais significativo
-        // Se buscaModelo for "GM/CELTA 5 PORTAS", tentamos achar "CELTA"
-
-        return response.modelos.stream()
-                .filter(m -> calcularScore(m.nome.toLowerCase(), termo) > 0)
-                .sorted((m1, m2) -> Double.compare(calcularScore(m2.nome.toLowerCase(), termo),
-                        calcularScore(m1.nome.toLowerCase(), termo))) // Decrescente
-                .findFirst()
-                .map(m -> m.codigo)
-                .orElse(null);
-    }
-
     private String encontrarCodigoAno(String codigoMarca, String codigoModelo, String anoBusca) {
-        List<ReferenciaFipeDTO> anos = client.listarAnos(codigoMarca, codigoModelo);
-        // Ano na Fipe vem como "2010-1" (Gasolina) ou "2010-3" (Diesel) ou "2010"
-        // O documento traz "2010"
+        try {
+            List<ReferenciaFipeDTO> anos = client.listarAnos(codigoMarca, codigoModelo);
 
-        return anos.stream()
-                .filter(a -> a.nome.startsWith(anoBusca)) // "2010 " ou "2010-1"
-                .findFirst()
-                .map(a -> a.codigo)
-                .orElse(null);
+            // 1. Filtra anos que começam com o ano buscado
+            List<ReferenciaFipeDTO> candidatos = anos.stream()
+                    .filter(a -> a.nome.startsWith(anoBusca))
+                    .collect(Collectors.toList());
+
+            if (candidatos.isEmpty()) {
+                return null;
+            }
+
+            // 2. Prioriza Gasolina/Flex se houver múltiplos
+            if (candidatos.size() > 1) {
+                return candidatos.stream()
+                        .filter(a -> a.nome.toLowerCase().contains("gasolina") || a.nome.toLowerCase().contains("flex"))
+                        .findFirst()
+                        .map(a -> a.codigo)
+                        .orElse(candidatos.get(0).codigo);
+            }
+
+            return candidatos.get(0).codigo;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String normalizarMarca(String marca) {
@@ -110,10 +125,18 @@ public class FipeService {
             return "toyota";
         if (m.contains("honda"))
             return "honda";
-        return m.split("/")[0].trim(); // Pega a primeira parte se for composta "FIAT/STRADA" -> "fiat"
+        if (m.contains("jeep"))
+            return "jeep";
+
+        String[] partes = m.split("/");
+        for (String p : partes) {
+            if (!p.trim().isEmpty()) {
+                return p.trim();
+            }
+        }
+        return m.trim();
     }
 
-    // Score simples de similaridade (Jaccard de palavras)
     private double calcularScore(String nomeFipe, String nomeBusca) {
         String[] tokensFipe = nomeFipe.split("\\s+");
         String[] tokensBusca = nomeBusca.split("[\\s/]+");
@@ -121,14 +144,16 @@ public class FipeService {
         int matches = 0;
         for (String tb : tokensBusca) {
             if (tb.length() <= 2)
-                continue; // ignora curtos
+                continue;
             for (String tf : tokensFipe) {
+                // Verifica contensão mútua para lidar com typos parciais ou substrings
                 if (tf.contains(tb) || tb.contains(tf)) {
                     matches++;
-                    break;
+                    break; // Conta apenas uma vez por token de busca
                 }
             }
         }
+        // Penaliza nomes Fipe muito longos se tiverem poucos matches
         return (double) matches / tokensFipe.length;
     }
 }

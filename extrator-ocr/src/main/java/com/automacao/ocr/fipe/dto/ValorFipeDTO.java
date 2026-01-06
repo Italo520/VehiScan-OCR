@@ -5,30 +5,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ValorFipeDTO {
-    @JsonProperty("Valor")
+    // API v2 usa nomes diferentes
+    @JsonProperty("price")
     public String valor;
 
-    @JsonProperty("Marca")
+    @JsonProperty("brand")
     public String marca;
 
-    @JsonProperty("Modelo")
+    @JsonProperty("model")
     public String modelo;
 
-    @JsonProperty("AnoModelo")
+    @JsonProperty("modelYear")
     public Integer anoModelo;
 
-    @JsonProperty("Combustivel")
+    @JsonProperty("fuel")
     public String combustivel;
 
-    @JsonProperty("CodigoFipe")
+    @JsonProperty("codeFipe")
     public String codigoFipe;
 
-    @JsonProperty("MesReferencia")
+    @JsonProperty("referenceMonth")
     public String mesReferencia;
 
-    @JsonProperty("TipoVeiculo")
+    @JsonProperty("vehicleType")
     public Integer tipoVeiculo;
 
-    @JsonProperty("SiglaCombustivel")
+    @JsonProperty("fuelAcronym")
     public String siglaCombustivel;
 }

@@ -51,9 +51,16 @@ public class ExtratorDadosVeiculo {
         }
 
         // 5. Marca/Modelo
+        // 5. Marca/Modelo
         Matcher mMarca = PATTERN_MARCA.matcher(texto);
-        if (mMarca.find()) {
+        while (mMarca.find()) {
             String marcaCompleta = mMarca.group(1).trim();
+
+            // Ignora se for cabeçalho (ex: "Marca / Modelo / Versão")
+            if (marcaCompleta.toUpperCase().contains("MODELO") && marcaCompleta.toUpperCase().contains("VERS")) {
+                continue;
+            }
+
             // Remove código numérico inicial se existir (ex: "149522 - GM/CELTA")
             if (marcaCompleta.matches("^\\d+\\s*-\\s*.*")) {
                 int indexTraco = marcaCompleta.indexOf("-");
@@ -62,6 +69,7 @@ public class ExtratorDadosVeiculo {
                 }
             }
             dados.put("Marca/Modelo", marcaCompleta);
+            break; // Encontrou um valor válido, para.
         }
 
         // 6. Classificação e Tipo (Lógica de negócio)
