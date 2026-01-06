@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.text.Font?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.automacao.auditoria.controller.DocumentListController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <Label text="Documentos Pendentes de Revisão">
+        <font>
+            <Font size="20.0" />
+        </font>
+    </Label>
+
+    <TableView fx:id="tabelaDocumentos" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colPlaca" text="Placa" prefWidth="100"/>
+            <TableColumn fx:id="colChassi" text="Chassi" prefWidth="150"/>
+            <TableColumn fx:id="colModelo" text="Modelo" prefWidth="200"/>
+            <TableColumn fx:id="colStatus" text="Status" prefWidth="100"/>
+        </columns>
+    </TableView>
+</VBox>

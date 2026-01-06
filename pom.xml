@@ -10,6 +10,7 @@
 
     <modules>
         <module>backend-ocr</module>
+        <module>auditoria-gui</module>
     </modules>
 
     <properties>
