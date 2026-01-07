@@ -48,13 +48,20 @@
          <items>
             <VBox spacing="10.0">
                <children>
-                  <TextField fx:id="txtSearch" promptText="Buscar placa ou chassi..." styleClass="text-field" />
-                  <ListView fx:id="listViewDocumentos" VBox.vgrow="ALWAYS" />
-                  <Label text="Status: Conectado" textFill="#7f8c8d">
+                  <Label text="Entrada de Documentos" styleClass="subheader-label"/>
+                  <HBox spacing="5.0">
+                     <children>
+                        <Button onAction="#carregarArquivo" text="Arquivo..." maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button onAction="#selecionarPastaEntrada" text="Pasta..." maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                     </children>
+                  </HBox>
+                  <Label fx:id="lblPastaEntrada" text="Nenhuma pasta selecionada" textFill="#7f8c8d" wrapText="true">
                      <font>
                         <Font size="10.0" />
                      </font>
                   </Label>
+                  <TextField fx:id="txtSearch" promptText="Buscar placa ou chassi..." styleClass="text-field" />
+                  <ListView fx:id="listViewDocumentos" VBox.vgrow="ALWAYS" />
                </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -164,6 +171,19 @@
                               </VBox>
                            </content>
                         </TitledPane>
+                        <VBox spacing="5.0" style="-fx-background-color: white; -fx-padding: 10; -fx-border-color: #e0e0e0; -fx-border-radius: 5;">
+                           <children>
+                              <Label text="Destino da Auditoria" styleClass="subheader-label"/>
+                              <javafx.scene.control.RadioButton fx:id="rbMongoOnly" text="Salvar apenas no MongoDB" selected="true"/>
+                              <javafx.scene.control.RadioButton fx:id="rbMongoCsv" text="Salvar MongoDB + Exportar CSV"/>
+                              <HBox spacing="5.0" alignment="CENTER_LEFT">
+                                 <children>
+                                    <TextField fx:id="txtPastaSaida" promptText="Pasta de saída..." HBox.hgrow="ALWAYS" disable="true"/>
+                                    <Button fx:id="btnSelecionarSaida" text="..." onAction="#selecionarPastaSaida" disable="true"/>
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
                      </children>
                   </VBox>
                </content>
@@ -171,4 +191,15 @@
          </items>
       </SplitPane>
    </center>
+   <bottom>
+      <HBox spacing="10.0" style="-fx-background-color: #ecf0f1; -fx-padding: 5;">
+         <children>
+            <Label fx:id="lblStatusConexao" text="Conectado a MongoDB" textFill="#27ae60"/>
+            <Label text="|"/>
+            <Label fx:id="lblStatusPastaEntrada" text="Entrada: Nenhuma"/>
+            <Label text="|"/>
+            <Label fx:id="lblStatusPastaSaida" text="Saída: Nenhuma"/>
+         </children>
+      </HBox>
+   </bottom>
 </BorderPane>
