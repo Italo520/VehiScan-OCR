@@ -157,4 +157,14 @@ public class DocumentoVeiculoDTO {
     public void setAuditoria(java.util.List<AuditLog> auditoria) {
         this.auditoria = auditoria;
     }
+
+    private String caminhoArquivo;
+
+    public String getCaminhoArquivo() {
+        return caminhoArquivo;
+    }
+
+    public void setCaminhoArquivo(String caminhoArquivo) {
+        this.caminhoArquivo = caminhoArquivo;
+    }
 }

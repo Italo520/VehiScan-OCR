@@ -152,6 +152,7 @@ public class ReviewController {
                 DocumentoVeiculoDTO dto = new DocumentoVeiculoDTO();
                 dto.setPlaca(new CampoExtraido(arquivo.getName(), CampoStatus.OK, "Arquivo Local", 1.0, "MANUAL"));
                 dto.setNecessitaRevisao(true);
+                dto.setCaminhoArquivo(arquivo.getAbsolutePath());
                 masterData.add(dto);
             }
         }
@@ -172,6 +173,7 @@ public class ReviewController {
             DocumentoVeiculoDTO dto = new DocumentoVeiculoDTO();
             dto.setPlaca(new CampoExtraido(file.getName(), CampoStatus.OK, "Arquivo Local", 1.0, "MANUAL"));
             dto.setNecessitaRevisao(true);
+            dto.setCaminhoArquivo(file.getAbsolutePath());
             masterData.add(0, dto);
             listViewDocumentos.getSelectionModel().select(dto);
         }
@@ -220,6 +222,41 @@ public class ReviewController {
         }
 
         preencherCampos();
+        carregarImagemOuPdf(doc);
+    }
+
+    private void carregarImagemOuPdf(DocumentoVeiculoDTO doc) {
+        if (doc.getCaminhoArquivo() == null) {
+            imageView.setImage(null);
+            return;
+        }
+
+        try {
+            java.io.File file = new java.io.File(doc.getCaminhoArquivo());
+            if (!file.exists()) {
+                System.out.println("Arquivo não encontrado: " + doc.getCaminhoArquivo());
+                imageView.setImage(null);
+                return;
+            }
+
+            String lowerName = file.getName().toLowerCase();
+            if (lowerName.endsWith(".pdf")) {
+                // Renderizar PDF usando PDFBox
+                try (org.apache.pdfbox.pdmodel.PDDocument document = org.apache.pdfbox.pdmodel.PDDocument.load(file)) {
+                    org.apache.pdfbox.rendering.PDFRenderer renderer = new org.apache.pdfbox.rendering.PDFRenderer(
+                            document);
+                    // Renderiza a primeira página em 72 DPI (escala 1)
+                    java.awt.image.BufferedImage bufferedImage = renderer.renderImage(0);
+                    imageView.setImage(javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null));
+                }
+            } else {
+                // Carregar Imagem normal
+                imageView.setImage(new javafx.scene.image.Image(file.toURI().toString()));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            imageView.setImage(null);
+        }
     }
 
     private void limparCampos() {
