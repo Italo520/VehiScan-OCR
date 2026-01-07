@@ -3,12 +3,14 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
@@ -18,134 +20,154 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.automacao.auditoria.controller.ReviewController">
+<BorderPane prefHeight="800.0" prefWidth="1400.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.automacao.auditoria.controller.ReviewController">
    <top>
-      <HBox alignment="CENTER_LEFT" spacing="10.0" BorderPane.alignment="CENTER">
-         <padding>
-            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-         </padding>
+      <VBox BorderPane.alignment="CENTER">
          <children>
-            <Button onAction="#voltar" text="&lt; Voltar" />
-            <Label text="Revisão de Documento">
-               <font>
-                  <Font size="18.0" />
-               </font>
-            </Label>
-            <Label fx:id="lblDocumentoId" text="ID: ..." textFill="#757575" />
-         </children>
-      </HBox>
-   </top>
-   <center>
-      <SplitPane dividerPositions="0.3, 0.7" BorderPane.alignment="CENTER">
-         <items>
-            <VBox alignment="TOP_CENTER" spacing="10.0">
-               <children>
-                  <Label text="Imagem do Documento" />
-                  <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="ALWAYS">
-                     <content>
-                        <ImageView fx:id="imageView" pickOnBounds="true" preserveRatio="true" />
-                     </content>
-                  </ScrollPane>
-               </children>
+            <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;">
                <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-            </VBox>
-            <VBox spacing="10.0">
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                  <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
                </padding>
                <children>
-                  <Label text="Dados Extraídos">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Label>
-                  <GridPane hgap="10.0" vgap="10.0">
-                    <columnConstraints>
-                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                      <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="200.0" />
-                    </columnConstraints>
-                    <rowConstraints>
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                    </rowConstraints>
+                  <Label styleClass="header-label" text="VehiScan Auditoria" />
+                  <Label fx:id="lblDocumentoId" text="ID: ..." textFill="#757575" />
+                  <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS" spacing="10.0">
                      <children>
-                        <Label text="Placa" />
-                        <TextField fx:id="txtPlaca" GridPane.columnIndex="1" />
-                        <Label text="Chassi" GridPane.rowIndex="1" />
-                        <TextField fx:id="txtChassi" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Label text="Modelo" GridPane.rowIndex="2" />
-                        <TextField fx:id="txtModelo" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <Label text="Marca" GridPane.rowIndex="3" />
-                        <TextField fx:id="txtMarca" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                        <Label text="Ano Fab." GridPane.rowIndex="4" />
-                        <TextField fx:id="txtAnoFab" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                        <Label text="Renavam" GridPane.rowIndex="5" />
-                        <TextField fx:id="txtRenavam" GridPane.columnIndex="1" GridPane.rowIndex="5" />
-                        <Label text="CPF/CNPJ" GridPane.rowIndex="6" />
-                        <TextField fx:id="txtCpfCnpj" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-                     </children>
-                  </GridPane>
-                  <Label text="Dados FIPE">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                     <VBox.margin>
-                        <Insets top="10.0" />
-                     </VBox.margin>
-                  </Label>
-                  <GridPane hgap="10.0" vgap="10.0">
-                    <columnConstraints>
-                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                      <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="200.0" />
-                    </columnConstraints>
-                    <rowConstraints>
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                    </rowConstraints>
-                     <children>
-                        <Label text="Código FIPE" />
-                        <TextField fx:id="txtFipeCodigo" GridPane.columnIndex="1" />
-                        <Label text="Marca" GridPane.rowIndex="1" />
-                        <TextField fx:id="txtFipeMarca" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Label text="Modelo" GridPane.rowIndex="2" />
-                        <TextField fx:id="txtFipeModelo" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <Label text="Ano Modelo" GridPane.rowIndex="3" />
-                        <TextField fx:id="txtFipeAno" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                        <Label text="Preço" GridPane.rowIndex="4" />
-                        <TextField fx:id="txtFipePreco" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                     </children>
-                  </GridPane>
-                  <CheckBox fx:id="chkNecessitaRevisao" mnemonicParsing="false" text="Necessita Revisão" />
-                  <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                     <children>
-                        <Button mnemonicParsing="false" onAction="#salvar" text="Salvar Alterações" />
-                        <Button mnemonicParsing="false" onAction="#marcarRevisado" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="Marcar como Revisado" />
+                        <Button mnemonicParsing="false" onAction="#atualizarLista" styleClass="button, secondary" text="Atualizar Lista" />
+                        <Button mnemonicParsing="false" onAction="#salvar" styleClass="button" text="Salvar (Ctrl+S)" />
+                        <Button mnemonicParsing="false" onAction="#marcarRevisado" styleClass="button, success" text="Aprovar (Ctrl+A)" />
                      </children>
                   </HBox>
                </children>
-            </VBox>
+            </HBox>
+         </children>
+      </VBox>
+   </top>
+   <center>
+      <SplitPane dividerPositions="0.25, 0.7" BorderPane.alignment="CENTER">
+         <items>
             <VBox spacing="10.0">
+               <children>
+                  <TextField fx:id="txtSearch" promptText="Buscar placa ou chassi..." styleClass="text-field" />
+                  <ListView fx:id="listViewDocumentos" VBox.vgrow="ALWAYS" />
+                  <Label text="Status: Conectado" textFill="#7f8c8d">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+               </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </padding>
+            </VBox>
+            <VBox spacing="10.0">
                <children>
-                  <Label text="Painel Técnico" />
-                  <Label text="Texto OCR Bruto:" />
-                  <TextArea fx:id="txtOcrRaw" editable="false" prefHeight="200.0" prefWidth="200.0" wrapText="true" />
-                  <Label text="Log de Auditoria:" />
-                  <TextArea fx:id="txtLog" editable="false" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
+                  <ToolBar prefHeight="40.0" prefWidth="200.0" style="-fx-background-color: white;">
+                    <items>
+                      <Button mnemonicParsing="false" text="Zoom In" />
+                        <Button mnemonicParsing="false" text="Zoom Out" />
+                        <Button mnemonicParsing="false" text="Girar" />
+                    </items>
+                  </ToolBar>
+                  <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="scroll-pane" VBox.vgrow="ALWAYS">
+                     <content>
+                        <VBox alignment="CENTER" style="-fx-background-color: #ecf0f1;">
+                           <children>
+                              <ImageView fx:id="imageView" pickOnBounds="true" preserveRatio="true" />
+                           </children>
+                        </VBox>
+                     </content>
+                  </ScrollPane>
                </children>
             </VBox>
+            <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+               <content>
+                  <VBox spacing="15.0">
+                     <padding>
+                        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                     </padding>
+                     <children>
+                        <TitledPane animated="false" collapsible="false" text="Dados do Veículo">
+                           <content>
+                              <GridPane hgap="10.0" vgap="10.0">
+                                 <columnConstraints>
+                                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="80.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="150.0" />
+                                 </columnConstraints>
+                                 <rowConstraints>
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                 </rowConstraints>
+                                 <children>
+                                    <Label text="Placa" />
+                                    <TextField fx:id="txtPlaca" GridPane.columnIndex="1" />
+                                    <Label text="Chassi" GridPane.rowIndex="1" />
+                                    <TextField fx:id="txtChassi" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                    <Label text="Marca" GridPane.rowIndex="2" />
+                                    <TextField fx:id="txtMarca" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                    <Label text="Modelo" GridPane.rowIndex="3" />
+                                    <TextField fx:id="txtModelo" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                    <Label text="Ano" GridPane.rowIndex="4" />
+                                    <TextField fx:id="txtAnoFab" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                                    <Label text="Renavam" GridPane.rowIndex="5" />
+                                    <TextField fx:id="txtRenavam" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                                    <Label text="CPF/CNPJ" GridPane.rowIndex="6" />
+                                    <TextField fx:id="txtCpfCnpj" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+                                 </children>
+                              </GridPane>
+                           </content>
+                        </TitledPane>
+                        <TitledPane animated="false" collapsible="false" text="Dados FIPE">
+                           <content>
+                              <GridPane hgap="10.0" vgap="10.0">
+                                 <columnConstraints>
+                                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="80.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="150.0" />
+                                 </columnConstraints>
+                                 <rowConstraints>
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                 </rowConstraints>
+                                 <children>
+                                    <Label text="Código" />
+                                    <TextField fx:id="txtFipeCodigo" GridPane.columnIndex="1" />
+                                    <Label text="Marca" GridPane.rowIndex="1" />
+                                    <TextField fx:id="txtFipeMarca" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                    <Label text="Modelo" GridPane.rowIndex="2" />
+                                    <TextField fx:id="txtFipeModelo" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                    <Label text="Ano" GridPane.rowIndex="3" />
+                                    <TextField fx:id="txtFipeAno" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                    <Label text="Preço" GridPane.rowIndex="4" />
+                                    <TextField fx:id="txtFipePreco" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                                 </children>
+                              </GridPane>
+                           </content>
+                        </TitledPane>
+                        <TitledPane animated="false" text="Auditoria e Logs">
+                           <content>
+                              <VBox spacing="5.0">
+                                 <children>
+                                    <CheckBox fx:id="chkNecessitaRevisao" mnemonicParsing="false" text="Marcar para Revisão" />
+                                    <Label text="OCR Raw:" />
+                                    <TextArea fx:id="txtOcrRaw" prefHeight="100.0" wrapText="true" />
+                                    <Label text="Logs:" />
+                                    <TextArea fx:id="txtLog" prefHeight="100.0" />
+                                 </children>
+                              </VBox>
+                           </content>
+                        </TitledPane>
+                     </children>
+                  </VBox>
+               </content>
+            </ScrollPane>
          </items>
       </SplitPane>
    </center>

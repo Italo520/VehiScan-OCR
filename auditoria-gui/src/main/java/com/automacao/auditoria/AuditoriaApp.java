@@ -14,7 +14,7 @@ public class AuditoriaApp extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("document_list"), 1280, 800);
+        scene = new Scene(loadFXML("review_view"), 1280, 800);
         stage.setScene(scene);
         stage.setTitle("VehiScan - Auditoria e Revisão");
         stage.show();
