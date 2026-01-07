@@ -33,6 +33,17 @@ public class ReviewController {
     @FXML
     private TextField txtCpfCnpj;
     @FXML
+    private TextField txtFipeCodigo;
+    @FXML
+    private TextField txtFipeMarca;
+    @FXML
+    private TextField txtFipeModelo;
+    @FXML
+    private TextField txtFipeAno;
+    @FXML
+    private TextField txtFipePreco;
+
+    @FXML
     private CheckBox chkNecessitaRevisao;
     @FXML
     private TextArea txtOcrRaw;
@@ -64,6 +75,22 @@ public class ReviewController {
         setCampo(txtAnoFab, documento.getFabricacao());
         setCampo(txtRenavam, documento.getRenavam());
         setCampo(txtCpfCnpj, documento.getCpfCnpj());
+
+        // Preencher dados FIPE
+        if (documento.getDadosFipe() != null) {
+            com.automacao.ocr.fipe.dto.ValorFipeDTO fipe = documento.getDadosFipe();
+            txtFipeCodigo.setText(fipe.codigoFipe);
+            txtFipeMarca.setText(fipe.marca);
+            txtFipeModelo.setText(fipe.modelo);
+            txtFipeAno.setText(fipe.anoModelo != null ? fipe.anoModelo.toString() : "");
+            txtFipePreco.setText(fipe.valor);
+        } else {
+            txtFipeCodigo.setText("");
+            txtFipeMarca.setText("");
+            txtFipeModelo.setText("");
+            txtFipeAno.setText("");
+            txtFipePreco.setText("");
+        }
 
         chkNecessitaRevisao.setSelected(documento.isNecessitaRevisao());
 
@@ -116,6 +143,25 @@ public class ReviewController {
             documento.getRenavam().setValor(txtRenavam.getText());
         if (documento.getCpfCnpj() != null)
             documento.getCpfCnpj().setValor(txtCpfCnpj.getText());
+
+        // Atualizar dados FIPE
+        if (documento.getDadosFipe() == null) {
+            documento.setDadosFipe(new com.automacao.ocr.fipe.dto.ValorFipeDTO());
+        }
+        com.automacao.ocr.fipe.dto.ValorFipeDTO fipe = documento.getDadosFipe();
+        fipe.codigoFipe = txtFipeCodigo.getText();
+        fipe.marca = txtFipeMarca.getText();
+        fipe.modelo = txtFipeModelo.getText();
+        try {
+            if (!txtFipeAno.getText().isEmpty()) {
+                fipe.anoModelo = Integer.parseInt(txtFipeAno.getText());
+            } else {
+                fipe.anoModelo = null;
+            }
+        } catch (NumberFormatException e) {
+            // Ignore invalid number
+        }
+        fipe.valor = txtFipePreco.getText();
 
         documento.setNecessitaRevisao(chkNecessitaRevisao.isSelected());
     }

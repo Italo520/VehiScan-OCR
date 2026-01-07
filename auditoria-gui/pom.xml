@@ -99,6 +99,17 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.automacao.auditoria.AuditoriaApp</mainClass>
+                    <options>
+                        <option>-Djavax.net.debug=ssl:handshake</option>
+                    </options>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>com.automacao.auditoria.DiagnosticoConexao</mainClass>
                 </configuration>
             </plugin>
         </plugins>

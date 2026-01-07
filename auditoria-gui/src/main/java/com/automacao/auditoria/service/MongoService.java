@@ -33,11 +33,22 @@ public class MongoService {
 
             String connectionString = dotenv.get("MONGO_URI", "mongodb://localhost:27017");
 
+            // Debug info
+            System.err.println("=== DEBUG MONGO CONNECTION ===");
+            System.err.println("Java Version: " + System.getProperty("java.version"));
+            System.err.println("Java Vendor: " + System.getProperty("java.vendor"));
+            System.err.println("TLS Protocols (Before): " + System.getProperty("jdk.tls.client.protocols"));
+
             // Force TLS 1.2 to avoid handshake issues with some Atlas clusters/JDK versions
             System.setProperty("jdk.tls.client.protocols", "TLSv1.2");
 
             com.mongodb.MongoClientSettings settings = com.mongodb.MongoClientSettings.builder()
                     .applyConnectionString(new com.mongodb.ConnectionString(connectionString))
+                    .applyToSslSettings(builder -> builder.enabled(true).invalidHostNameAllowed(true)) // Explicitly
+                                                                                                       // enable SSL and
+                                                                                                       // allow invalid
+                                                                                                       // hostnames for
+                                                                                                       // testing
                     .applyToSocketSettings(builder -> builder.connectTimeout(10000, TimeUnit.MILLISECONDS)) // 10s
                                                                                                             // timeout
                     .applyToClusterSettings(builder -> builder.serverSelectionTimeout(10000, TimeUnit.MILLISECONDS)) // 10s
