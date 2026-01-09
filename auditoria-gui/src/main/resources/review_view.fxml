@@ -53,6 +53,7 @@
                      <children>
                         <Button onAction="#carregarArquivo" text="Arquivo..." maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
                         <Button onAction="#selecionarPastaEntrada" text="Pasta..." maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button onAction="#analisarTodos" text="Analisar Todos" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="button, accent"/>
                      </children>
                   </HBox>
                   <Label fx:id="lblPastaEntrada" text="Nenhuma pasta selecionada" textFill="#7f8c8d" wrapText="true">

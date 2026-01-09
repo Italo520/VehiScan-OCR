@@ -15,6 +15,16 @@ import javafx.scene.image.ImageView;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import com.automacao.ocr.extraction.ExtractionPipeline;
+import com.automacao.ocr.ocr.TesseractService;
+import com.automacao.ocr.ocr.TesseractServiceImpl;
+import com.automacao.ocr.service.ExtratorLLM;
+import com.automacao.ocr.service.ExtratorLLMSimulado;
+import com.automacao.ocr.service.ValidadorDocumentoVeiculo;
+import com.automacao.ocr.service.ValidadorDocumentoVeiculoImpl;
+import io.github.cdimascio.dotenv.Dotenv;
+import java.nio.file.Paths;
+import javafx.concurrent.Task;
 
 public class ReviewController {
 
@@ -404,6 +414,122 @@ public class ReviewController {
     @FXML
     private void voltar() {
         // Deprecated in new layout
+    }
+
+    @FXML
+    private void analisarTodos() {
+        if (masterData.isEmpty()) {
+            showAlert("Aviso", "Nenhum documento na lista para analisar.");
+            return;
+        }
+
+        Task<Void> task = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Inicializando serviços...");
+
+                // Carrega variáveis de ambiente
+                Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+
+                // Configuração Tesseract
+                java.nio.file.Path tessdata = Paths
+                        .get("C:\\Users\\leiloespb\\Desktop\\Projetos\\automacao\\extrator-ocr\\tessdata");
+                TesseractService extratorTexto = new TesseractServiceImpl(tessdata, "por");
+
+                // Configuração LLM
+                ExtratorLLM extratorLLM;
+                String apiKey = dotenv.get("PERPLEXITY_API_KEY");
+                if (apiKey == null) {
+                    apiKey = System.getenv("PERPLEXITY_API_KEY");
+                }
+
+                if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("pplx-xxxx")) {
+                    extratorLLM = new com.automacao.ocr.service.ExtratorLLMPerplexity(apiKey);
+                } else {
+                    extratorLLM = new ExtratorLLMSimulado();
+                }
+
+                ValidadorDocumentoVeiculo validador = new ValidadorDocumentoVeiculoImpl();
+                ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador);
+
+                int total = masterData.size();
+                int count = 0;
+
+                for (DocumentoVeiculoDTO doc : masterData) {
+                    if (isCancelled())
+                        break;
+
+                    // Pula se já estiver completo (opcional, mas bom para não refazer trabalho)
+                    if (doc.getStatusExtracao() == StatusExtracao.COMPLETO) {
+                        count++;
+                        updateProgress(count, total);
+                        continue;
+                    }
+
+                    updateMessage("Analisando: "
+                            + (doc.getCaminhoArquivo() != null ? new java.io.File(doc.getCaminhoArquivo()).getName()
+                                    : "Documento " + (count + 1)));
+
+                    try {
+                        if (doc.getCaminhoArquivo() != null) {
+                            java.io.File arquivo = new java.io.File(doc.getCaminhoArquivo());
+                            if (arquivo.exists()) {
+                                // Processa o arquivo
+                                DocumentoVeiculoDTO resultado = pipeline.processar(arquivo);
+
+                                // Atualiza o DTO original com os resultados
+                                // Precisamos fazer isso na thread da UI ou copiar os dados com cuidado
+                                // Como DTO é POJO, podemos atualizar, mas a UI só vai refletir se for
+                                // Observable ou se forçarmos refresh
+
+                                // Copiando dados principais
+                                doc.setPlaca(resultado.getPlaca());
+                                doc.setChassi(resultado.getChassi());
+                                doc.setModelo(resultado.getModelo());
+                                doc.setMarca(resultado.getMarca());
+                                doc.setFabricacao(resultado.getFabricacao());
+                                doc.setRenavam(resultado.getRenavam());
+                                doc.setCpfCnpj(resultado.getCpfCnpj());
+                                doc.setDadosFipe(resultado.getDadosFipe());
+                                doc.setStatusExtracao(resultado.getStatusExtracao());
+                                doc.setNecessitaRevisao(resultado.isNecessitaRevisao());
+                                doc.setAuditoria(resultado.getAuditoria()); // Logs
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        // Logar erro no documento se possível
+                    }
+
+                    count++;
+                    updateProgress(count, total);
+                }
+                return null;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            lblStatusPastaEntrada.setText("Análise concluída!");
+            listViewDocumentos.refresh();
+            if (documentoAtual != null) {
+                setDocumento(documentoAtual); // Recarrega visualização atual
+            }
+            showAlert("Sucesso", "Análise em lote concluída.");
+        });
+
+        task.setOnFailed(e -> {
+            lblStatusPastaEntrada.setText("Erro na análise.");
+            Throwable error = task.getException();
+            showAlert("Erro", "Falha na análise: " + error.getMessage());
+            error.printStackTrace();
+        });
+
+        // Bind progress (opcional, se tivermos uma barra de progresso)
+        // progressBar.progressProperty().bind(task.progressProperty());
+
+        lblStatusPastaEntrada.textProperty().bind(task.messageProperty());
+
+        new Thread(task).start();
     }
 
     private void atualizarDTO() {

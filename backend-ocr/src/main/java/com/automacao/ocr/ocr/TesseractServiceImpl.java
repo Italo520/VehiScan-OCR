@@ -41,8 +41,8 @@ public class TesseractServiceImpl implements TesseractService {
             PDFTextStripper stripper = new PDFTextStripper();
             String texto = stripper.getText(doc);
 
-            // Verifica se extraiu texto suficiente para considerar PDF de texto
-            if (texto != null && !texto.isBlank() && texto.trim().length() > 10) {
+            // Verifica se extraiu texto suficiente E relevante para considerar PDF de texto
+            if (texto != null && !texto.isBlank() && texto.trim().length() > 20 && contemPalavrasChave(texto)) {
                 // PDF texto “normal”
                 ResultadoExtracaoTexto resultado = new ResultadoExtracaoTexto();
                 resultado.setTipoFonte(TipoDocumentoFonte.PDF_TEXTO);
@@ -88,5 +88,14 @@ public class TesseractServiceImpl implements TesseractService {
         } catch (TesseractException e) {
             throw new IOException("Erro ao executar OCR na imagem", e);
         }
+    }
+
+    private boolean contemPalavrasChave(String texto) {
+        if (texto == null)
+            return false;
+        String t = texto.toLowerCase();
+        return t.contains("placa") || t.contains("chassi") || t.contains("renavam") ||
+                t.contains("marca") || t.contains("ano") || t.contains("modelo") ||
+                t.contains("crlv") || t.contains("veículo") || t.contains("proprietário");
     }
 }
