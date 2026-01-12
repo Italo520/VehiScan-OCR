@@ -45,6 +45,7 @@ public class ExtractionPipeline {
 
                 // Converte Map -> DTO
                 DocumentoVeiculoDTO dadosPreliminares = converterMapParaDTO(dadosMap);
+                dadosPreliminares.setOcrRaw(texto);
 
                 // 3. Validação Preliminar
                 System.out.println("   [Pipeline] 2b. Validação Preliminar...");

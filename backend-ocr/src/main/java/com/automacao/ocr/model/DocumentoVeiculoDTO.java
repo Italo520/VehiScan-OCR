@@ -167,4 +167,14 @@ public class DocumentoVeiculoDTO {
     public void setCaminhoArquivo(String caminhoArquivo) {
         this.caminhoArquivo = caminhoArquivo;
     }
+
+    private String ocrRaw;
+
+    public String getOcrRaw() {
+        return ocrRaw;
+    }
+
+    public void setOcrRaw(String ocrRaw) {
+        this.ocrRaw = ocrRaw;
+    }
 }

@@ -72,9 +72,9 @@
                <children>
                   <ToolBar prefHeight="40.0" prefWidth="200.0" style="-fx-background-color: white;">
                     <items>
-                      <Button mnemonicParsing="false" text="Zoom In" />
-                        <Button mnemonicParsing="false" text="Zoom Out" />
-                        <Button mnemonicParsing="false" text="Girar" />
+                      <Button mnemonicParsing="false" text="Zoom In" onAction="#zoomIn" />
+                        <Button mnemonicParsing="false" text="Zoom Out" onAction="#zoomOut" />
+                        <Button mnemonicParsing="false" text="Girar" onAction="#girarImagem" />
                     </items>
                   </ToolBar>
                   <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="scroll-pane" VBox.vgrow="ALWAYS">
@@ -126,6 +126,8 @@
                                     <TextField fx:id="txtRenavam" GridPane.columnIndex="1" GridPane.rowIndex="5" />
                                     <Label text="CPF/CNPJ" GridPane.rowIndex="6" />
                                     <TextField fx:id="txtCpfCnpj" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+                                    <Label text="Observações" GridPane.rowIndex="7" GridPane.valignment="TOP"/>
+                                    <TextArea fx:id="txtObservacoes" prefHeight="60.0" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
                                  </children>
                               </GridPane>
                            </content>
@@ -163,7 +165,7 @@
                            <content>
                               <VBox spacing="5.0">
                                  <children>
-                                    <CheckBox fx:id="chkNecessitaRevisao" mnemonicParsing="false" text="Marcar para Revisão" />
+                                    <CheckBox fx:id="chkNecessitaRevisao" mnemonicParsing="false" text="Marcar para Revisão" onAction="#onNecessitaRevisaoChanged" />
                                     <Label text="OCR Raw:" />
                                     <TextArea fx:id="txtOcrRaw" prefHeight="100.0" wrapText="true" />
                                     <Label text="Logs:" />

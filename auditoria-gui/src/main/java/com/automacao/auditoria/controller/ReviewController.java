@@ -6,6 +6,7 @@ import com.automacao.ocr.model.DocumentoVeiculoDTO;
 import com.automacao.ocr.model.CampoExtraido;
 import com.automacao.ocr.model.StatusExtracao;
 import com.automacao.ocr.model.CampoStatus;
+import com.automacao.ocr.model.AuditLog;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -52,6 +53,8 @@ public class ReviewController {
     private TextField txtRenavam;
     @FXML
     private TextField txtCpfCnpj;
+    @FXML
+    private TextArea txtObservacoes;
 
     // Dados FIPE
     @FXML
@@ -310,6 +313,12 @@ public class ReviewController {
         setCampo(txtRenavam, documentoAtual.getRenavam());
         setCampo(txtCpfCnpj, documentoAtual.getCpfCnpj());
 
+        if (documentoAtual.getObservacoes() != null) {
+            txtObservacoes.setText(documentoAtual.getObservacoes().getValor());
+        } else {
+            txtObservacoes.clear();
+        }
+
         // Preencher dados FIPE
         if (documentoAtual.getDadosFipe() != null) {
             com.automacao.ocr.fipe.dto.ValorFipeDTO fipe = documentoAtual.getDadosFipe();
@@ -341,6 +350,13 @@ public class ReviewController {
             txtLog.setText(logs);
         } else {
             txtLog.setText("");
+        }
+
+        // OCR Raw
+        if (documentoAtual.getOcrRaw() != null) {
+            txtOcrRaw.setText(documentoAtual.getOcrRaw());
+        } else {
+            txtOcrRaw.clear();
         }
     }
 
@@ -408,6 +424,37 @@ public class ReviewController {
             listViewDocumentos.getSelectionModel().selectFirst();
         } else {
             limparCampos();
+        }
+    }
+
+    @FXML
+    private void zoomIn() {
+        imageView.setScaleX(imageView.getScaleX() * 1.1);
+        imageView.setScaleY(imageView.getScaleY() * 1.1);
+    }
+
+    @FXML
+    private void zoomOut() {
+        imageView.setScaleX(imageView.getScaleX() / 1.1);
+        imageView.setScaleY(imageView.getScaleY() / 1.1);
+    }
+
+    @FXML
+    private void girarImagem() {
+        imageView.setRotate(imageView.getRotate() + 90);
+    }
+
+    @FXML
+    private void onNecessitaRevisaoChanged() {
+        if (documentoAtual != null) {
+            boolean novoValor = chkNecessitaRevisao.isSelected();
+            if (documentoAtual.isNecessitaRevisao() != novoValor) {
+                documentoAtual.setNecessitaRevisao(novoValor);
+                // Logar mudança de status
+                AuditLog log = new AuditLog("Necessita Revisão",
+                        String.valueOf(!novoValor), String.valueOf(novoValor), "Auditor");
+                documentoAtual.getAuditoria().add(log);
+            }
         }
     }
 
@@ -536,13 +583,16 @@ public class ReviewController {
         if (documentoAtual == null)
             return;
 
-        documentoAtual.setPlaca(atualizarCampo(documentoAtual.getPlaca(), txtPlaca.getText()));
-        documentoAtual.setChassi(atualizarCampo(documentoAtual.getChassi(), txtChassi.getText()));
-        documentoAtual.setModelo(atualizarCampo(documentoAtual.getModelo(), txtModelo.getText()));
-        documentoAtual.setMarca(atualizarCampo(documentoAtual.getMarca(), txtMarca.getText()));
-        documentoAtual.setFabricacao(atualizarCampo(documentoAtual.getFabricacao(), txtAnoFab.getText()));
-        documentoAtual.setRenavam(atualizarCampo(documentoAtual.getRenavam(), txtRenavam.getText()));
-        documentoAtual.setCpfCnpj(atualizarCampo(documentoAtual.getCpfCnpj(), txtCpfCnpj.getText()));
+        documentoAtual.setPlaca(atualizarCampoLogado(documentoAtual.getPlaca(), txtPlaca.getText(), "Placa"));
+        documentoAtual.setChassi(atualizarCampoLogado(documentoAtual.getChassi(), txtChassi.getText(), "Chassi"));
+        documentoAtual.setModelo(atualizarCampoLogado(documentoAtual.getModelo(), txtModelo.getText(), "Modelo"));
+        documentoAtual.setMarca(atualizarCampoLogado(documentoAtual.getMarca(), txtMarca.getText(), "Marca"));
+        documentoAtual
+                .setFabricacao(atualizarCampoLogado(documentoAtual.getFabricacao(), txtAnoFab.getText(), "Ano Fab"));
+        documentoAtual.setRenavam(atualizarCampoLogado(documentoAtual.getRenavam(), txtRenavam.getText(), "Renavam"));
+        documentoAtual.setCpfCnpj(atualizarCampoLogado(documentoAtual.getCpfCnpj(), txtCpfCnpj.getText(), "CPF/CNPJ"));
+        documentoAtual.setObservacoes(
+                atualizarCampoLogado(documentoAtual.getObservacoes(), txtObservacoes.getText(), "Observações"));
 
         // Atualizar dados FIPE
         if (documentoAtual.getDadosFipe() == null) {
@@ -566,13 +616,23 @@ public class ReviewController {
         documentoAtual.setNecessitaRevisao(chkNecessitaRevisao.isSelected());
     }
 
-    // Método auxiliar para criar ou atualizar CampoExtraido corretamente
-    private CampoExtraido atualizarCampo(CampoExtraido campo, String novoValor) {
-        if (campo == null) {
-            // Usa o construtor correto de 3 parâmetros: (valor, status, motivo)
-            return new CampoExtraido(novoValor, CampoStatus.OK, "Editado Manualmente");
+    // Método auxiliar para criar ou atualizar CampoExtraido com Log
+    private CampoExtraido atualizarCampoLogado(CampoExtraido campo, String novoValor, String nomeCampo) {
+        String valorAntigo = (campo != null && campo.getValor() != null) ? campo.getValor() : "";
+        String valorNovo = (novoValor != null) ? novoValor : "";
+
+        if (!valorAntigo.equals(valorNovo)) {
+            // Criar Log
+            AuditLog log = new AuditLog(nomeCampo, valorAntigo, valorNovo, "Auditor");
+            documentoAtual.getAuditoria().add(log);
+
+            // Atualizar Campo
+            if (campo == null) {
+                return new CampoExtraido(valorNovo, CampoStatus.OK, "Editado Manualmente");
+            }
+            campo.setValor(valorNovo);
+            campo.setStatus(CampoStatus.OK); // Assume OK se editado manualmente
         }
-        campo.setValor(novoValor);
         return campo;
     }
 
