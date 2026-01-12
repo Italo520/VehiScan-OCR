@@ -43,12 +43,17 @@ public class TesseractServiceImpl implements TesseractService {
 
             // Verifica se extraiu texto suficiente E relevante para considerar PDF de texto
             if (texto != null && !texto.isBlank() && texto.trim().length() > 20 && contemPalavrasChave(texto)) {
+                System.out.println(
+                        "   [Tesseract] PDF de Texto detectado (" + arquivo.getName() + "). Usando texto extraído.");
                 // PDF texto “normal”
                 ResultadoExtracaoTexto resultado = new ResultadoExtracaoTexto();
                 resultado.setTipoFonte(TipoDocumentoFonte.PDF_TEXTO);
                 resultado.setTextoCompleto(texto);
                 return resultado;
             }
+
+            System.out.println("   [Tesseract] PDF de Imagem/Misto detectado (" + arquivo.getName()
+                    + "). Iniciando OCR nas páginas...");
 
             // Se não há texto (ou muito pouco), tratar como escaneado (OCR página a página)
             PDFRenderer renderer = new PDFRenderer(doc);
@@ -111,12 +116,13 @@ public class TesseractServiceImpl implements TesseractService {
         // Regex simplificados para detecção rápida
         boolean temPlaca = texto.matches("(?s).*?[A-Z]{3}[0-9][0-9A-Z][0-9]{2}.*?");
         boolean temChassi = texto.matches("(?s).*?[A-Z0-9]{17}.*?");
-        boolean temAno = texto.matches("(?s).*?(19|20)\\d{2}.*?");
+        // boolean temAno = texto.matches("(?s).*?(19|20)\\d{2}.*?"); // REMOVIDO: Ano é
+        // muito comum em rodapés
         boolean temRenavam = texto.matches("(?s).*?[0-9]{9,11}.*?");
 
         // Se tiver keywords mas NENHUM valor reconhecível, provavelmente é um
         // formulário em branco ou imagem.
         // Retorna false para forçar OCR.
-        return temPlaca || temChassi || temAno || temRenavam;
+        return temPlaca || temChassi || temRenavam;
     }
 }
