@@ -58,6 +58,7 @@ public class ExtratorLLMPerplexity implements ExtratorLLM {
                 Instruções Específicas:
                 - Procure atentamente por notas de rodapé ou campos de observações.
                 - Se encontrar menções a "Remarcado", "Sinistro", "Leilão", "Recuperado", inclua no campo "observacoes".
+                - Se o documento for uma "CERTIDÃO DE BAIXA DO REGISTRO DE VEÍCULO", o campo "observacoes" DEVE conter "GRANDE MONTA".
                 - Se não houver observações relevantes, deixe o campo null ou string vazia.
 
                 Campos esperados:

@@ -155,8 +155,37 @@ public class ExtratorDadosVeiculo {
         } else if (textoParaRegex.contains("CONSULTA CADASTRO DE VEICULO")
                 || textoParaRegex.contains("CONSULTA CADASTRO DE VEÍCULO")) {
             dados.put("Tipo Documento", "CONSULTA CADASTRO DE VEICULO");
+        } else if (textoParaRegex.contains("CERTIDÃO DE BAIXA DO REGISTRO DE VEÍCULO") ||
+                textoParaRegex.contains("CERTIDAO DE BAIXA DO REGISTRO DE VEICULO")) {
+            dados.put("Tipo Documento", "CERTIDÃO DE BAIXA");
+
+            // Regra de Negócio: Certidão de Baixa -> Grande Monta
+            String obsExistente = dados.getOrDefault("Observações", "");
+            if (!obsExistente.contains("GRANDE MONTA")) {
+                if (!obsExistente.isEmpty())
+                    obsExistente += " | ";
+                obsExistente += "GRANDE MONTA (Veículo Baixado)";
+                dados.put("Observações", obsExistente);
+            }
         } else {
             dados.put("Tipo Documento", "Desconhecido");
+        }
+
+        // --- Regex Específicos para Certidão de Baixa (Fallback/Reforço) ---
+        // Se ainda não pegou Placa (padrão diferente: "PLACA ATUAL:")
+        if (!dados.containsKey("Placa")) {
+            Matcher mPlacaBaixa = Pattern.compile("(?i)PLACA ATUAL[:\\s]+([A-Z]{3}[0-9][0-9A-Z][0-9]{2})")
+                    .matcher(textoParaRegex);
+            if (mPlacaBaixa.find()) {
+                dados.put("Placa", TextNormalizer.normalize(mPlacaBaixa.group(1)));
+            }
+        }
+        // Se ainda não pegou Ano Fab (padrão diferente: "ANO DE FABRICAÇÃO:")
+        if (!dados.containsKey("Fabricação")) {
+            Matcher mAnoBaixa = Pattern.compile("(?i)ANO DE FABRICA[ÇC][ÃA]O[:\\s]+(\\d{4})").matcher(textoParaRegex);
+            if (mAnoBaixa.find()) {
+                dados.put("Fabricação", mAnoBaixa.group(1));
+            }
         }
 
         return dados;
