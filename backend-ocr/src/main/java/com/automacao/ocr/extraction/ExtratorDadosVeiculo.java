@@ -187,6 +187,13 @@ public class ExtratorDadosVeiculo {
                 dados.put("Fabricação", mAnoBaixa.group(1));
             }
         }
+        // Se ainda não pegou Marca/Modelo (padrão diferente: "MARCA/MODELO:")
+        if (!dados.containsKey("Marca/Modelo")) {
+            Matcher mMarcaBaixa = Pattern.compile("(?i)MARCA/MODELO[:\\s]+([^\n]+)").matcher(textoParaRegex);
+            if (mMarcaBaixa.find()) {
+                dados.put("Marca/Modelo", TextNormalizer.normalize(mMarcaBaixa.group(1)));
+            }
+        }
 
         return dados;
     }

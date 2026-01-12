@@ -541,6 +541,16 @@ public class ReviewController {
                                 doc.setStatusExtracao(resultado.getStatusExtracao());
                                 doc.setNecessitaRevisao(resultado.isNecessitaRevisao());
                                 doc.setAuditoria(resultado.getAuditoria()); // Logs
+                                doc.setOcrRaw(resultado.getOcrRaw()); // OCR Raw
+
+                                // Forçar atualização da UI para este item específico
+                                javafx.application.Platform.runLater(() -> {
+                                    listViewDocumentos.refresh();
+                                    // Se for o documento atualmente selecionado, recarregar os campos
+                                    if (documentoAtual == doc) {
+                                        preencherCampos();
+                                    }
+                                });
                             }
                         }
                     } catch (Exception e) {
