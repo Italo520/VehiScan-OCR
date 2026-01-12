@@ -480,7 +480,7 @@ public class ReviewController {
 
                 // Configuração Tesseract
                 java.nio.file.Path tessdata = Paths
-                        .get("C:\\Users\\leiloespb\\Desktop\\Projetos\\automacao\\extrator-ocr\\tessdata");
+                        .get("C:\\Users\\leiloespb\\Desktop\\Projetos\\automacao\\backend-ocr\\tessdata");
                 TesseractService extratorTexto = new TesseractServiceImpl(tessdata, "por");
 
                 // Configuração LLM
