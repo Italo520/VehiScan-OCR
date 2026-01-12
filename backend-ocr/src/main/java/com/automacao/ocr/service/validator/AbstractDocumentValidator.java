@@ -36,6 +36,7 @@ public abstract class AbstractDocumentValidator implements DocumentValidatorStra
         validarAnoFabricacao(doc);
         validarAnoModelo(doc);
         validarMarcaModelo(doc);
+        validarObservacoes(doc);
         validarEspecifico(doc, textoOriginal);
     }
 
@@ -43,6 +44,15 @@ public abstract class AbstractDocumentValidator implements DocumentValidatorStra
      * Método gancho para validações específicas de cada tipo de documento.
      */
     protected abstract void validarEspecifico(DocumentoVeiculoDTO doc, String textoOriginal);
+
+    protected void validarObservacoes(DocumentoVeiculoDTO doc) {
+        CampoExtraido obs = doc.getObservacoes();
+        if (obs != null && obs.getValor() != null && !obs.getValor().trim().isEmpty()) {
+            // Se houver qualquer observação, marca para revisão
+            marcar(obs, CampoStatus.SUSPEITO, "Observação presente: " + obs.getValor());
+            doc.setNecessitaRevisao(true);
+        }
+    }
 
     protected void validarPlaca(DocumentoVeiculoDTO doc) {
         CampoExtraido placa = doc.getPlaca();

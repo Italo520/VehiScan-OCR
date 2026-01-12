@@ -105,7 +105,51 @@ public class ExtratorDadosVeiculo {
             dados.put("Nome", TextNormalizer.normalize(mNome.group(1)));
         }
 
-        // 9. Classificação e Tipo (Lógica de negócio)
+        // 9. Observações (Busca por palavras-chave críticas)
+        StringBuilder obs = new StringBuilder();
+        if (textoParaRegex.toLowerCase().contains("remarcado")) {
+            obs.append("Possível Remarcação identificada. ");
+        }
+        if (textoParaRegex.toLowerCase().contains("sinistro")) {
+            obs.append("Indício de Sinistro. ");
+        }
+        if (textoParaRegex.toLowerCase().contains("leilão") || textoParaRegex.toLowerCase().contains("leilao")) {
+            obs.append("Veículo de Leilão. ");
+        }
+
+        // Tenta capturar campo Observações explícito (Multilinha)
+        // Procura por "OBSERVAÇÕES DO VEÍCULO" e captura até o próximo bloco de seção
+        // ou fim do arquivo
+        Pattern pObs = Pattern.compile(
+                "(?i)OBSERVA[ÇC][ÕO]ES DO VE[ÍI]CULO[:\\s]*\\n((?:.|\\n)*?)(?=\\n\\s*(?:MENSAGENS|INFORMA[ÇC][ÕO]ES|DADOS|LOCAL|DATA)|$)",
+                Pattern.DOTALL);
+        Matcher mObs = pObs.matcher(textoParaRegex);
+        if (mObs.find()) {
+            String conteudoObs = mObs.group(1).trim();
+            if (!conteudoObs.isEmpty()) {
+                if (obs.length() > 0)
+                    obs.append(" | ");
+                obs.append(conteudoObs.replaceAll("\\n", " ").replaceAll("\\s+", " "));
+            }
+        } else {
+            // Fallback para formato simples de uma linha
+            Pattern pObsSimples = Pattern.compile("(?i)Observa[çc][õo]es[:\\s]+([^\n]+)");
+            Matcher mObsSimples = pObsSimples.matcher(textoParaRegex);
+            if (mObsSimples.find()) {
+                String conteudoObs = mObsSimples.group(1).trim();
+                if (!conteudoObs.isEmpty()) {
+                    if (obs.length() > 0)
+                        obs.append(" | ");
+                    obs.append(conteudoObs);
+                }
+            }
+        }
+
+        if (obs.length() > 0) {
+            dados.put("Observações", obs.toString().trim());
+        }
+
+        // 10. Classificação e Tipo (Lógica de negócio)
         if (textoParaRegex.contains("CERTIFICADO DE REGISTRO")) {
             dados.put("Tipo Documento", "CRV/CRLV");
         } else if (textoParaRegex.contains("CONSULTA CADASTRO DE VEICULO")

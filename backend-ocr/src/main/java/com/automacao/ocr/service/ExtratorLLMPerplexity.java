@@ -55,6 +55,11 @@ public class ExtratorLLMPerplexity implements ExtratorLLM {
 
                 Responda APENAS com um JSON válido.
 
+                Instruções Específicas:
+                - Procure atentamente por notas de rodapé ou campos de observações.
+                - Se encontrar menções a "Remarcado", "Sinistro", "Leilão", "Recuperado", inclua no campo "observacoes".
+                - Se não houver observações relevantes, deixe o campo null ou string vazia.
+
                 Campos esperados:
                 - tipo_documento, placa, chassi, marca, fabricacao, modelo, classificacao, observacoes.
                 """;

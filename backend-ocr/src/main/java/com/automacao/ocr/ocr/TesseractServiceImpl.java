@@ -91,11 +91,32 @@ public class TesseractServiceImpl implements TesseractService {
     }
 
     private boolean contemPalavrasChave(String texto) {
-        if (texto == null)
+        if (texto == null || texto.isEmpty())
             return false;
         String t = texto.toLowerCase();
-        return t.contains("placa") || t.contains("chassi") || t.contains("renavam") ||
+
+        // Palavras-chave básicas
+        boolean temKeywords = t.contains("placa") || t.contains("chassi") || t.contains("renavam") ||
                 t.contains("marca") || t.contains("ano") || t.contains("modelo") ||
                 t.contains("crlv") || t.contains("veículo") || t.contains("proprietário");
+
+        if (!temKeywords)
+            return false;
+
+        // Validação extra: Se tem keywords, tem algum VALOR associado?
+        // Se o PDF só tem "Placa:" mas não tem a placa (porque é imagem), o texto
+        // extraído será curto ou só labels.
+        // Vamos checar se tem algo que parece uma Placa ou Chassi ou Ano.
+
+        // Regex simplificados para detecção rápida
+        boolean temPlaca = texto.matches("(?s).*?[A-Z]{3}[0-9][0-9A-Z][0-9]{2}.*?");
+        boolean temChassi = texto.matches("(?s).*?[A-Z0-9]{17}.*?");
+        boolean temAno = texto.matches("(?s).*?(19|20)\\d{2}.*?");
+        boolean temRenavam = texto.matches("(?s).*?[0-9]{9,11}.*?");
+
+        // Se tiver keywords mas NENHUM valor reconhecível, provavelmente é um
+        // formulário em branco ou imagem.
+        // Retorna false para forçar OCR.
+        return temPlaca || temChassi || temAno || temRenavam;
     }
 }
