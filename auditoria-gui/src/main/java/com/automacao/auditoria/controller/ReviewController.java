@@ -556,7 +556,7 @@ public class ReviewController {
         };
 
         task.setOnSucceeded(e -> {
-            lblStatusPastaEntrada.setText("Análise concluída!");
+            unbindAndSetText(lblStatusPastaEntrada, "Análise concluída!");
             listViewDocumentos.refresh();
             if (documentoAtual != null) {
                 setDocumento(documentoAtual); // Recarrega visualização atual
@@ -565,7 +565,7 @@ public class ReviewController {
         });
 
         task.setOnFailed(e -> {
-            lblStatusPastaEntrada.setText("Erro na análise.");
+            unbindAndSetText(lblStatusPastaEntrada, "Erro na análise.");
             Throwable error = task.getException();
             showAlert("Erro", "Falha na análise: " + error.getMessage());
             error.printStackTrace();
@@ -577,6 +577,13 @@ public class ReviewController {
         lblStatusPastaEntrada.textProperty().bind(task.messageProperty());
 
         new Thread(task).start();
+    }
+
+    private void unbindAndSetText(Label label, String text) {
+        if (label.textProperty().isBound()) {
+            label.textProperty().unbind();
+        }
+        label.setText(text);
     }
 
     private void atualizarDTO() {

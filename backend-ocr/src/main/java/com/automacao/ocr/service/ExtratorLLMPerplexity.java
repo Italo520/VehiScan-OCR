@@ -78,7 +78,34 @@ public class ExtratorLLMPerplexity implements ExtratorLLM {
 
             String content = JsonUtils.extrairContent(rawResponse);
             VeiculoJSONDTO jsonDto = mapper.readValue(content, VeiculoJSONDTO.class);
-            return converterParaDominio(jsonDto);
+            DocumentoVeiculoDTO resultadoLLM = converterParaDominio(jsonDto);
+
+            // Preservar campos que o LLM não extrai ou que já temos
+            if (dadosPreliminares != null) {
+                resultadoLLM.setCaminhoArquivo(dadosPreliminares.getCaminhoArquivo());
+                resultadoLLM.setOcrRaw(dadosPreliminares.getOcrRaw());
+
+                // Preservar Renavam e CPF/CNPJ se o LLM não retornou (ou se confiamos mais no
+                // Regex para estes)
+                // O LLM atual não está sendo solicitado para extrair Renavam/CPF, então
+                // copiamos do preliminar
+                if (resultadoLLM.getRenavam().getStatus() == CampoStatus.NAO_ENCONTRADO) {
+                    resultadoLLM.setRenavam(dadosPreliminares.getRenavam());
+                }
+                if (resultadoLLM.getCpfCnpj().getStatus() == CampoStatus.NAO_ENCONTRADO) {
+                    resultadoLLM.setCpfCnpj(dadosPreliminares.getCpfCnpj());
+                }
+                if (resultadoLLM.getNomeProprietario().getStatus() == CampoStatus.NAO_ENCONTRADO) {
+                    resultadoLLM.setNomeProprietario(dadosPreliminares.getNomeProprietario());
+                }
+            }
+
+            // Garantir que o OCR Raw esteja setado se não veio do preliminar
+            if (resultadoLLM.getOcrRaw() == null) {
+                resultadoLLM.setOcrRaw(textoDocumento);
+            }
+
+            return resultadoLLM;
 
         } catch (Exception e) {
             System.err.println("   [ExtratorLLM] Erro na chamada LLM: " + e.getMessage());
