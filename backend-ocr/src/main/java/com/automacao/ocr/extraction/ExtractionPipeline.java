@@ -15,13 +15,16 @@ public class ExtractionPipeline {
         private final TesseractService extratorTexto;
         private final ExtratorLLM extratorLLM;
         private final ValidadorDocumentoVeiculo validador;
+        private final com.automacao.ocr.service.CsvExportService csvExportService;
 
         public ExtractionPipeline(TesseractService extratorTexto,
                         ExtratorLLM extratorLLM,
-                        ValidadorDocumentoVeiculo validador) {
+                        ValidadorDocumentoVeiculo validador,
+                        com.automacao.ocr.service.CsvExportService csvExportService) {
                 this.extratorTexto = extratorTexto;
                 this.extratorLLM = extratorLLM;
                 this.validador = validador;
+                this.csvExportService = csvExportService;
         }
 
         public DocumentoVeiculoDTO processar(File arquivo) throws IOException {
@@ -132,6 +135,12 @@ public class ExtractionPipeline {
                 System.out.println("   [Pipeline] 5. Salvando no MongoDB...");
                 com.automacao.ocr.repository.VeiculoRepository mongoService = new com.automacao.ocr.repository.VeiculoRepository();
                 mongoService.salvarVeiculo(documentoFinal, fipeCompleto);
+
+                // 8. Salvar CSV (Se serviço configurado)
+                if (csvExportService != null) {
+                        System.out.println("   [Pipeline] 6. Salvando no CSV...");
+                        csvExportService.salvarVeiculo(documentoFinal);
+                }
 
                 return documentoFinal;
         }

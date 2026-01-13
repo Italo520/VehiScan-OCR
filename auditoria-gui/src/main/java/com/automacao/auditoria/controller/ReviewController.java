@@ -470,6 +470,14 @@ public class ReviewController {
             return;
         }
 
+        final boolean exportarCsv = rbMongoCsv.isSelected();
+        final String pastaSaida = txtPastaSaida.getText();
+
+        if (exportarCsv && (pastaSaida == null || pastaSaida.isEmpty())) {
+            showAlert("Erro", "Selecione uma pasta de saída para exportar o CSV.");
+            return;
+        }
+
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
@@ -497,7 +505,15 @@ public class ReviewController {
                 }
 
                 ValidadorDocumentoVeiculo validador = new ValidadorDocumentoVeiculoImpl();
-                ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador);
+
+                com.automacao.ocr.service.CsvExportService csvService = null;
+                if (exportarCsv) {
+                    String arquivoCsv = Paths.get(pastaSaida, "veiculos_lote.csv").toString();
+                    csvService = new com.automacao.ocr.service.CsvExportService(arquivoCsv);
+                    updateMessage("Exportação CSV habilitada: " + arquivoCsv);
+                }
+
+                ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador, csvService);
 
                 int total = masterData.size();
                 int count = 0;

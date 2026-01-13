@@ -46,8 +46,10 @@ public class MainExtracao {
             }
 
             ValidadorDocumentoVeiculo validador = new ValidadorDocumentoVeiculoImpl();
+            com.automacao.ocr.service.CsvExportService csvService = new com.automacao.ocr.service.CsvExportService(
+                    "C:\\Users\\leiloespb\\Desktop\\Projetos\\automacao\\veiculos_extraidos.csv");
 
-            ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador);
+            ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador, csvService);
 
             // Pasta contendo os documentos
             File pastaDocs = new File("C:\\Users\\leiloespb\\Desktop\\Projetos\\automacao\\docs");
