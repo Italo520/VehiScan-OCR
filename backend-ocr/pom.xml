@@ -83,6 +83,7 @@
                 <configuration>
                     <mainClass>com.automacao.ocr.app.MainExtracao</mainClass>
                 </configuration>
+
             </plugin>
         </plugins>
     </build>

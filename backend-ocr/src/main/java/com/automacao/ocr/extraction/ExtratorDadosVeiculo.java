@@ -105,7 +105,7 @@ public class ExtratorDadosVeiculo {
             dados.put("Nome", TextNormalizer.normalize(mNome.group(1)));
         }
 
-        // 9. Observações (Busca por palavras-chave críticas)
+        // 9. Observações (Busca por palavras-chave críticas e Monta)
         StringBuilder obs = new StringBuilder();
         if (textoParaRegex.toLowerCase().contains("remarcado")) {
             obs.append("Possível Remarcação identificada. ");
@@ -115,6 +115,17 @@ public class ExtratorDadosVeiculo {
         }
         if (textoParaRegex.toLowerCase().contains("leilão") || textoParaRegex.toLowerCase().contains("leilao")) {
             obs.append("Veículo de Leilão. ");
+        }
+
+        // Extração de Dano / Monta (CRVSP / Portal Salvados)
+        Matcher mMonta = Pattern.compile("(?i)VEIC\\.?\\s*DANO\\s*([^\\n]*MONTA)").matcher(textoParaRegex);
+        if (mMonta.find()) {
+            String dano = mMonta.group(1).trim();
+            if (obs.length() > 0)
+                obs.append(" | ");
+            obs.append(dano);
+            // Salva também em campo específico se quiser mapear para Classificação
+            dados.put("Classificação", dano); // Ex: MEDIA MONTA
         }
 
         // Tenta capturar campo Observações explícito (Multilinha)
@@ -153,8 +164,9 @@ public class ExtratorDadosVeiculo {
         if (textoParaRegex.contains("CERTIFICADO DE REGISTRO")) {
             dados.put("Tipo Documento", "CRV/CRLV");
         } else if (textoParaRegex.contains("CONSULTA CADASTRO DE VEICULO")
-                || textoParaRegex.contains("CONSULTA CADASTRO DE VEÍCULO")) {
-            dados.put("Tipo Documento", "CONSULTA CADASTRO DE VEICULO");
+                || textoParaRegex.contains("CONSULTA CADASTRO DE VEÍCULO")
+                || textoParaRegex.contains("Consulta Base Estadual")) {
+            dados.put("Tipo Documento", "CONSULTA DETRAN/SP");
         } else if (textoParaRegex.contains("CERTIDÃO DE BAIXA DO REGISTRO DE VEÍCULO") ||
                 textoParaRegex.contains("CERTIDAO DE BAIXA DO REGISTRO DE VEICULO")) {
             dados.put("Tipo Documento", "CERTIDÃO DE BAIXA");
@@ -171,29 +183,54 @@ public class ExtratorDadosVeiculo {
             dados.put("Tipo Documento", "Desconhecido");
         }
 
-        // --- Regex Específicos para Certidão de Baixa (Fallback/Reforço) ---
-        // Se ainda não pegou Placa (padrão diferente: "PLACA ATUAL:")
+        // --- Fallbacks / Busca Solta (Loose Match) para CRVSP e layouts tabulares ---
+
+        // Placa Solta (AAA0A00)
         if (!dados.containsKey("Placa")) {
-            Matcher mPlacaBaixa = Pattern.compile("(?i)PLACA ATUAL[:\\s]+([A-Z]{3}[0-9][0-9A-Z][0-9]{2})")
+            Matcher mPlacaSolta = Pattern.compile("\\b([A-Z]{3}[0-9][0-9A-Z][0-9]{2})\\b").matcher(textoParaRegex);
+            if (mPlacaSolta.find()) {
+                dados.put("Placa", TextNormalizer.normalize(mPlacaSolta.group(1)));
+            }
+        }
+
+        // Chassi Solto (17 chars)
+        if (!dados.containsKey("Chassi")) {
+            // Evita pegar sequencias numericas muito longas ou IDs, tenta focar em Alphanum
+            // 17
+            Matcher mChassiSolto = Pattern.compile("\\b([A-Z0-9]{17})\\b").matcher(textoParaRegex);
+            while (mChassiSolto.find()) {
+                String cand = mChassiSolto.group(1);
+                // Validacao basica: nao pode ser so numeros (geralmente chassi tem letras)
+                // mas chassi antigo pode ser so numero. O padrao 17 ja filtra bem.
+                if (!cand.matches("^\\d+$")) { // Se nao for SO numeros (evita IDs numericos gigantes, embora 17 digitos
+                                               // seja chassi msm)
+                    dados.put("Chassi", TextNormalizer.normalize(cand));
+                    break;
+                }
+            }
+        }
+
+        // Marca/Modelo padrão Detran SP: COD - MARCA/MODELO - COR
+        // Ex: 23935 - KAWASAKI/NINJA ZX-6R14 - VERDE
+        if (!dados.containsKey("Marca/Modelo") || dados.get("Marca/Modelo").isEmpty()) {
+            Matcher mMarcaSP = Pattern.compile("\\d{5,6}\\s*-\\s*([A-Za-z0-9/\\.\\s-]+?)(?:\\s-\\s|$)")
                     .matcher(textoParaRegex);
-            if (mPlacaBaixa.find()) {
-                dados.put("Placa", TextNormalizer.normalize(mPlacaBaixa.group(1)));
+            if (mMarcaSP.find()) {
+                dados.put("Marca/Modelo", TextNormalizer.normalize(mMarcaSP.group(1).trim()));
             }
         }
-        // Se ainda não pegou Ano Fab (padrão diferente: "ANO DE FABRICAÇÃO:")
+
+        // Anos Padrao SP: "2021 2021"
         if (!dados.containsKey("Fabricação")) {
-            Matcher mAnoBaixa = Pattern.compile("(?i)ANO DE FABRICA[ÇC][ÃA]O[:\\s]+(\\d{4})").matcher(textoParaRegex);
-            if (mAnoBaixa.find()) {
-                dados.put("Fabricação", mAnoBaixa.group(1));
+            Matcher mAnosSP = Pattern.compile("\\b((?:19|20)\\d{2})\\s+((?:19|20)\\d{2})\\b").matcher(textoParaRegex);
+            if (mAnosSP.find()) {
+                dados.put("Fabricação", mAnosSP.group(1));
+                dados.put("Ano Modelo", mAnosSP.group(2));
             }
         }
-        // Se ainda não pegou Marca/Modelo (padrão diferente: "MARCA/MODELO:")
-        if (!dados.containsKey("Marca/Modelo")) {
-            Matcher mMarcaBaixa = Pattern.compile("(?i)MARCA/MODELO[:\\s]+([^\n]+)").matcher(textoParaRegex);
-            if (mMarcaBaixa.find()) {
-                dados.put("Marca/Modelo", TextNormalizer.normalize(mMarcaBaixa.group(1)));
-            }
-        }
+
+        // Remove valores nulos ou vazios que possam ter entrado
+        dados.values().removeIf(val -> val == null || val.trim().isEmpty());
 
         return dados;
     }
