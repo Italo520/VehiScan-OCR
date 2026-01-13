@@ -677,6 +677,58 @@ public class ReviewController {
         return campo;
     }
 
+    @FXML
+    private void exportarListaCsv() {
+        if (masterData.isEmpty()) {
+            showAlert("Aviso", "Nenhum documento na lista para exportar.");
+            return;
+        }
+
+        java.io.File pastaDestino = pastaSaidaAtual;
+        if (pastaDestino == null) {
+            String pathStr = txtPastaSaida.getText();
+            if (pathStr != null && !pathStr.isEmpty()) {
+                pastaDestino = new java.io.File(pathStr);
+            }
+        }
+
+        if (pastaDestino == null || !pastaDestino.exists()) {
+            javafx.stage.DirectoryChooser directoryChooser = new javafx.stage.DirectoryChooser();
+            directoryChooser.setTitle("Selecionar Pasta para Exportar CSV");
+            pastaDestino = directoryChooser.showDialog(listViewDocumentos.getScene().getWindow());
+            if (pastaDestino == null)
+                return;
+        }
+
+        try {
+            // Usa o mesmo nome de arquivo do lote ou um específico?
+            // Vamos usar 'veiculos_exportados.csv' para diferenciar ou o mesmo?
+            // O usuário pediu "exportar somente o arquivo csv", pode ser um snapshot.
+            String arquivoCsvStr = java.nio.file.Paths.get(pastaDestino.getAbsolutePath(), "veiculos_exportados.csv")
+                    .toString();
+
+            // Delete se existir para exportar apenas a lista atual limpa
+            java.io.File fileCsv = new java.io.File(arquivoCsvStr);
+            if (fileCsv.exists()) {
+                fileCsv.delete();
+            }
+
+            com.automacao.ocr.service.CsvExportService csvService = new com.automacao.ocr.service.CsvExportService(
+                    arquivoCsvStr);
+
+            int count = 0;
+            for (DocumentoVeiculoDTO doc : masterData) {
+                csvService.salvarVeiculo(doc);
+                count++;
+            }
+
+            showAlert("Sucesso", "Exportação concluída.\n" + count + " veículos salvos em:\n" + arquivoCsvStr);
+        } catch (Exception e) {
+            showAlert("Erro", "Falha ao exportar CSV: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);

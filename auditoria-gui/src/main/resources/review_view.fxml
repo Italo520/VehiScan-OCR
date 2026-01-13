@@ -34,6 +34,7 @@
                   <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS" spacing="10.0">
                      <children>
                         <Button mnemonicParsing="false" onAction="#atualizarLista" styleClass="button, secondary" text="Atualizar Lista" />
+                        <Button mnemonicParsing="false" onAction="#exportarListaCsv" styleClass="button, secondary" text="Exportar CSV" />
                         <Button mnemonicParsing="false" onAction="#salvar" styleClass="button" text="Salvar (Ctrl+S)" />
                         <Button mnemonicParsing="false" onAction="#marcarRevisado" styleClass="button, success" text="Aprovar (Ctrl+A)" />
                      </children>
