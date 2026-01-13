@@ -508,9 +508,13 @@ public class ReviewController {
 
                 com.automacao.ocr.service.CsvExportService csvService = null;
                 if (exportarCsv) {
-                    String arquivoCsv = Paths.get(pastaSaida, "veiculos_lote.csv").toString();
-                    csvService = new com.automacao.ocr.service.CsvExportService(arquivoCsv);
-                    updateMessage("Exportação CSV habilitada: " + arquivoCsv);
+                    String arquivoCsvStr = Paths.get(pastaSaida, "veiculos_lote.csv").toString();
+                    java.io.File fileCsv = new java.io.File(arquivoCsvStr);
+                    if (fileCsv.exists()) {
+                        fileCsv.delete(); // Começar limpo para não duplicar em re-execuções
+                    }
+                    csvService = new com.automacao.ocr.service.CsvExportService(arquivoCsvStr);
+                    updateMessage("Exportação CSV habilitada: " + arquivoCsvStr);
                 }
 
                 ExtractionPipeline pipeline = new ExtractionPipeline(extratorTexto, extratorLLM, validador, csvService);
@@ -522,8 +526,12 @@ public class ReviewController {
                     if (isCancelled())
                         break;
 
-                    // Pula se já estiver completo (opcional, mas bom para não refazer trabalho)
+                    // Pula se já estiver completo, MASEXPORTA SE NECESSÁRIO
                     if (doc.getStatusExtracao() == StatusExtracao.COMPLETO) {
+                        if (csvService != null) {
+                            updateMessage("Exportando (Cache): " + doc.getPlaca().getValor());
+                            csvService.salvarVeiculo(doc);
+                        }
                         count++;
                         updateProgress(count, total);
                         continue;
