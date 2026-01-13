@@ -83,10 +83,12 @@ public class CsvExportService {
         sb.append("").append(SEPARATOR);
 
         // MONTA
-        String monta = getValor(dto.getClassificacao());
+        // Agora lê do campo "monta" explícito
+        String monta = getValor(dto.getMonta());
         String obs = getValor(dto.getObservacoes()).toUpperCase();
+
+        // Se vazio, tenta fallback antigo na observação (caso legado)
         if (monta.isEmpty() || monta.equals("-")) {
-            // Tenta achar na observação
             if (obs.contains("MÉDIA MONTA") || obs.contains("MEDIA MONTA"))
                 monta = "Média monta";
             else if (obs.contains("GRANDE MONTA"))
@@ -94,9 +96,9 @@ public class CsvExportService {
             else if (obs.contains("PEQUENA MONTA"))
                 monta = "Pequena monta";
         }
-        // Se ainda vazio, tenta inferir ou deixa vazio. Imagem mostra "Média monta"
-        // roxo.
-        if (monta.isEmpty())
+
+        // Se ainda vazio, tenta inferir ou deixa vazio.
+        if (monta.isEmpty() || monta.equals("-"))
             monta = "Média monta"; // Fallback visual
 
         sb.append(monta);

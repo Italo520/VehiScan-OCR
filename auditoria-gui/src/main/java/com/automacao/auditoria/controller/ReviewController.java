@@ -54,6 +54,8 @@ public class ReviewController {
     @FXML
     private TextField txtCpfCnpj;
     @FXML
+    private TextField txtMonta;
+    @FXML
     private TextArea txtObservacoes;
 
     // Dados FIPE
@@ -281,6 +283,7 @@ public class ReviewController {
         txtAnoFab.clear();
         txtRenavam.clear();
         txtCpfCnpj.clear();
+        txtMonta.clear();
         txtFipeCodigo.clear();
         txtFipeMarca.clear();
         txtFipeModelo.clear();
@@ -312,6 +315,7 @@ public class ReviewController {
         setCampo(txtAnoFab, documentoAtual.getFabricacao());
         setCampo(txtRenavam, documentoAtual.getRenavam());
         setCampo(txtCpfCnpj, documentoAtual.getCpfCnpj());
+        setCampo(txtMonta, documentoAtual.getMonta());
 
         if (documentoAtual.getObservacoes() != null) {
             txtObservacoes.setText(documentoAtual.getObservacoes().getValor());
@@ -561,6 +565,7 @@ public class ReviewController {
                                 doc.setFabricacao(resultado.getFabricacao());
                                 doc.setRenavam(resultado.getRenavam());
                                 doc.setCpfCnpj(resultado.getCpfCnpj());
+                                doc.setMonta(resultado.getMonta());
                                 doc.setDadosFipe(resultado.getDadosFipe());
                                 doc.setStatusExtracao(resultado.getStatusExtracao());
                                 doc.setNecessitaRevisao(resultado.isNecessitaRevisao());
@@ -632,6 +637,7 @@ public class ReviewController {
                 .setFabricacao(atualizarCampoLogado(documentoAtual.getFabricacao(), txtAnoFab.getText(), "Ano Fab"));
         documentoAtual.setRenavam(atualizarCampoLogado(documentoAtual.getRenavam(), txtRenavam.getText(), "Renavam"));
         documentoAtual.setCpfCnpj(atualizarCampoLogado(documentoAtual.getCpfCnpj(), txtCpfCnpj.getText(), "CPF/CNPJ"));
+        documentoAtual.setMonta(atualizarCampoLogado(documentoAtual.getMonta(), txtMonta.getText(), "Monta"));
         documentoAtual.setObservacoes(
                 atualizarCampoLogado(documentoAtual.getObservacoes(), txtObservacoes.getText(), "Observações"));
 

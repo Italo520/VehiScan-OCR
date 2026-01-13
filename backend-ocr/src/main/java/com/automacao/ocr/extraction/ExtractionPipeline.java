@@ -211,6 +211,12 @@ public class ExtractionPipeline {
                 dto.setNomeProprietario(new com.automacao.ocr.model.CampoExtraido(map.get("Nome"),
                                 CampoStatus.OK, "Regex", 1.0, "REGEX"));
 
+                dto.setObservacoes(new com.automacao.ocr.model.CampoExtraido(map.get("Observações"),
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+
+                dto.setMonta(new com.automacao.ocr.model.CampoExtraido(map.get("Monta"),
+                                CampoStatus.OK, "Regex", 1.0, "REGEX"));
+
                 return dto;
         }
 }

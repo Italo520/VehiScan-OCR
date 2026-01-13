@@ -121,11 +121,8 @@ public class ExtratorDadosVeiculo {
         Matcher mMonta = Pattern.compile("(?i)VEIC\\.?\\s*DANO\\s*([^\\n]*MONTA)").matcher(textoParaRegex);
         if (mMonta.find()) {
             String dano = mMonta.group(1).trim();
-            if (obs.length() > 0)
-                obs.append(" | ");
-            obs.append(dano);
-            // Salva também em campo específico se quiser mapear para Classificação
-            dados.put("Classificação", dano); // Ex: MEDIA MONTA
+            // User requested separate field, so DO NOT append to obs
+            dados.put("Monta", dano); // Ex: MEDIA MONTA
         }
 
         // Tenta capturar campo Observações explícito (Multilinha)

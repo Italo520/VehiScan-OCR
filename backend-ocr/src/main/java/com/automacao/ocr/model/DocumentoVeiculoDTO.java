@@ -32,6 +32,7 @@ public class DocumentoVeiculoDTO {
         this.renavam = new CampoExtraido(null, CampoStatus.NAO_ENCONTRADO, "Inicializado");
         this.cpfCnpj = new CampoExtraido(null, CampoStatus.NAO_ENCONTRADO, "Inicializado");
         this.nomeProprietario = new CampoExtraido(null, CampoStatus.NAO_ENCONTRADO, "Inicializado");
+        this.monta = new CampoExtraido(null, CampoStatus.NAO_ENCONTRADO, "Inicializado");
 
         this.statusExtracao = StatusExtracao.PENDENTE;
         this.necessitaRevisao = true;
@@ -172,6 +173,16 @@ public class DocumentoVeiculoDTO {
 
     public String getOcrRaw() {
         return ocrRaw;
+    }
+
+    private CampoExtraido monta;
+
+    public void setMonta(CampoExtraido monta) {
+        this.monta = monta;
+    }
+
+    public CampoExtraido getMonta() {
+        return monta;
     }
 
     public void setOcrRaw(String ocrRaw) {
